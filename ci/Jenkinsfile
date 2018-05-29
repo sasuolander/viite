@@ -1,12 +1,10 @@
 import groovy.json.JsonOutput
 
 def get_environment() {
-    if (BRANCH_NAME.startsWith("demo-")) { return "demo" }
-    if (BRANCH_NAME.equals("develop")) { return "sit" }
-    if (BRANCH_NAME.startsWith("hotfix-")) { return "qfe" }
+    if (BRANCH_NAME.equals("ci")) { return "it" } // TODO REMOVE
+    if (BRANCH_NAME.equals("develop")) { return "it" }
+    if (BRANCH_NAME.startsWith("release")) { return "qa" }
     if (BRANCH_NAME.equals("master")) { return "prod" }
-    if (BRANCH_NAME.startsWith("release-")) { return "uat" }
-    if (BRANCH_NAME.startsWith("qa-")) { return "qa" }
     return ""
 }
 def get_host_group() {
@@ -14,10 +12,14 @@ def get_host_group() {
 }
 def get_host_list() {
     def hosts = []
-    if (["prod","uat"].contains(get_environment())) {
-        2.times { hosts.add("${get_host_group()}-${it+1}.vally.local") }
-    } else {
-        hosts.add("${get_host_group()}.vally.local")
+    if (["it"].contains(get_environment())) {
+        hosts.add("livikeh01l.vally.local")
+    } else if (["qa"].contains(get_environment())) {
+        hosts.add("livikeh02l.vally.local")
+        hosts.add("livikeh03l.vally.local")
+    } else if (["prod"].contains(get_environment())) {
+        hosts.add("livituo18")
+        hosts.add("livituo19")
     }
     return hosts
 }
@@ -40,7 +42,7 @@ pipeline {
         DB_CRED_FLYWAY = credentials("db-cred-flyway-${get_service_environment()}")
         DB_HOST = credentials("db-host-${get_service_environment()}")
         DB_NAME = credentials("db-name-${get_environment()}")
-        NOTIFY_MAIL_TO = "ci-notifications@raid-e.flowdock.com"
+        NOTIFY_MAIL_TO = "sami.kosonen@cgi.com"
         NOTIFY_MAIL_MIMETYPE = "text/html"
         NOTIFY_MAIL_SUBJECT = "${JOB_NAME} - ${BUILD_ID}"
         NOTIFY_SLACK_SUBJECT = "${JOB_NAME} - <${RUN_DISPLAY_URL}|${BUILD_DISPLAY_NAME}>"
@@ -61,6 +63,8 @@ pipeline {
             }
             steps {
                 script {
+
+                    // TODO
 
                     def pom = readMavenPom()
 
@@ -227,6 +231,10 @@ pipeline {
                 }
             }
             steps {
+
+
+                // TODO
+
                 sh "cp /data1/ci/{maven,python}/* ci/confs/"
                 script {
                     def jenkins_uid = sh(returnStdout: true, script: "id -u").trim()
@@ -264,7 +272,7 @@ pipeline {
         stage("Build") {
             agent {
                 docker {
-                    image "raide-rahti-backend-maven"
+                    image "viite"
                     reuseNode true
                 }
             }
@@ -350,7 +358,7 @@ pipeline {
         stage("Publish") {
             agent {
                 docker {
-                    image "raide-rahti-backend-maven"
+                    image "viite"
                     reuseNode true
                 }
             }
@@ -411,7 +419,7 @@ pipeline {
         stage("Test") {
             agent {
                 docker {
-                    image "raide-rahti-backend-python"
+                    image "viite-python"
                     args "--network host"
                     reuseNode true
                 }
