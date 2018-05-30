@@ -7,9 +7,6 @@ def get_environment() {
     if (BRANCH_NAME.equals("master")) { return "prod" }
     return ""
 }
-def get_host_group() {
-    return "raide-${get_environment()}"
-}
 def get_host_list() {
     def hosts = []
     if (["it"].contains(get_environment())) {
