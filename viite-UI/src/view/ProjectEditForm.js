@@ -393,6 +393,16 @@
         else $('#manualCPWarning').css('display', 'none');
       });
 
+        rootElement.on('change', '#trackCodeDropdown', function (eventData) {
+            if (parseInt(eventData.srcElement.value) > 0) {
+                $('#discontinuityDropdown').prop('disabled', true);
+                $('#discontinuityDropdown').css('visibility', 'hidden');
+            } else {
+                $('#discontinuityDropdown').prop('disabled', false);
+                $('#discontinuityDropdown').css('visibility', 'visible');
+            }
+        });
+
       rootElement.on('change', '#roadTypeDropDown', function(){
         setFormDirty();
       });
