@@ -482,7 +482,7 @@ object ProjectValidator {
       val previousRoadPartNumber: Option[Long] = RoadAddressDAO.fetchPreviousRoadPartNumber(road, part)
       if (previousRoadPartNumber.nonEmpty) {
         val allProjectLinks = ProjectDAO.getProjectLinks(project.id)
-        if (allProjectLinks.exists(link => link.roadNumber == road && link.roadPartNumber == previousRoadPartNumber.get))
+        if (allProjectLinks.exists(link => link.roadNumber == road && link.roadPartNumber >= previousRoadPartNumber.get && link.roadPartNumber < part))
           return None
         val previousRoadPartEnd: Option[RoadAddress] = RoadAddressDAO.fetchByRoadPart(road, previousRoadPartNumber.get, fetchOnlyEnd = true).headOption
         if (previousRoadPartEnd.nonEmpty) {

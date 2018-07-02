@@ -558,7 +558,7 @@
               return link.linkId;
             });
             if (error.linkIds.every(link => projectLinkIds.indexOf(link) > -1)) {
-                selectedProjectLinkProperty.openWithErrorMessage(error.ids[0], error.errorMessage);
+                selectedProjectLinkProperty.openWithErrorMessage(error.ids, error.errorMessage);
             } else {
                 new ModalConfirm("Sinun täytyy varata tieosa projektille, jotta voit korjata sen.");
             }
