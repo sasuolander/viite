@@ -89,7 +89,8 @@
     eventbus.on('layer:selected', function selectLayer(layer, previouslySelectedLayer) {
       var layerToBeHidden = layers[previouslySelectedLayer];
       var layerToBeShown = layers[layer];
-
+      console.log(layerToBeShown);
+      console.log(layerToBeHidden);
       if (layerToBeHidden) layerToBeHidden.hide(map);
       layerToBeShown.show(map);
       applicationModel.setMinDirtyZoomLevel(minZoomForContent());

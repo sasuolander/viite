@@ -384,6 +384,7 @@
     
     this.findReservedProjectLinks = function(boundingBox, zoomLevel, projectId) {
       backend.getProjectLinks({boundingBox: boundingBox, zoom: zoomLevel, projectId: projectId}, function(fetchedLinks) {
+        console.log("find reserved");
         var notHandledLinks = _.chain(fetchedLinks).flatten().filter(function (link) {
           return link.status ===  LinkStatus.NotHandled.value;
         }).uniq().value();

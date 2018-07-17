@@ -28,6 +28,7 @@
     };
 
     this.getProjectLinks = function() {
+      console.log(" project collection get project links");
         return backend.getProjectLinksById(currentProject.project.id);
     };
 
@@ -72,6 +73,7 @@
         id = projectInfo.id;
       if (id)
         backend.getProjectLinks({boundingBox: boundingBox, zoom: zoom, projectId: id}, function(fetchedLinks) {
+          console.log("proj coll");
           fetchedProjectLinks = _.map(fetchedLinks, function(projectLinkGroup) {
             return _.map(projectLinkGroup, function(projectLink) {
               return new ProjectLinkModel(projectLink);

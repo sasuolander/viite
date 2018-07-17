@@ -27,6 +27,7 @@
     });
 
     this.getProjectLinks = createCallbackRequestor(function (params) {
+      console.log("get project links backend");
       var zoom = params.zoom;
       var boundingBox = params.boundingBox;
       var projectId = params.projectId;
@@ -507,6 +508,7 @@
     };
     this.withProjectLinks = function (returnData) {
       self.getProjectLinks = function (params, callback) {
+        console.log("withProjectLinks")
         callback(returnData);
         return returnData;
       };

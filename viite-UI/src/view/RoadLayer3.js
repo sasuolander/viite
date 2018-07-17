@@ -42,11 +42,12 @@
 
     var handleRoadsVisibility = function() {
       if (_.isObject(vectorLayer)) {
-        vectorLayer.setVisible(map.getView().getZoom() >= minimumContentZoomLevel());
+        vectorLayer.setVisible(map.getView().getZoom() >= minimumContentZoomLevel()  && $('#roadsVisibleCheckbox')[0].checked);
       }
     };
 
     var mapMovedHandler = function(mapState) {
+      console.log("WUT");
       if (mapState.zoom !== currentZoom) {
         currentZoom = mapState.zoom;
       }
@@ -57,6 +58,7 @@
         roadCollection.fetch(map.getView().calculateExtent(map.getSize()).join(','), currentZoom + 1);
         handleRoadsVisibility();
       }
+
     };
 
     var clear = function(){

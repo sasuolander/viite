@@ -166,6 +166,7 @@
     map.addLayer(historicRoadsLayer);
 
       var toggleLayerVisibility = function (visibleToggle, withVectorLayer) {
+          console.log("toggle layer visible");
           floatingMarkerLayer.setVisible(visibleToggle);
           anomalousMarkerLayer.setVisible(visibleToggle);
           suravageMarkerLayer.setVisible(visibleToggle);
@@ -824,9 +825,12 @@
         suravageRoadLayer.setVisible(visibility);
         suravageMarkerLayer.setVisible(visibility);
       });
-        eventListener.listenTo(eventbus, 'allRoads:toggleVisibility', function (visibility) {
-            toggleLayerVisibility(visibility, true);
-        });
+      eventListener.listenTo(eventbus, 'allRoads:toggleVisibility', function (visibility) {
+        if (activeLayer)
+          toggleLayerVisibility(visibility, true);
+        else
+          eventbus.trigger("allProjectRoads:toggleVisibility", visibility);
+      });
       eventListener.listenTo(eventbus, 'linkProperties:dataset:changed', draw);
       eventListener.listenTo(eventbus, 'linkProperties:updateFailed', cancelSelection);
       eventListener.listenTo(eventbus, 'adjacents:nextSelected', function(sources, adjacents, targets) {

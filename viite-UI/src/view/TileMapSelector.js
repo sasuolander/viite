@@ -31,10 +31,10 @@
       eventbus.trigger('suravageRoads:toggleVisibility', this.checked);
       eventbus.trigger("suravageProjectRoads:toggleVisibility", this.checked);
     });
-      $('#roadsVisibleCheckbox').change(function () {
-          eventbus.trigger('allRoads:toggleVisibility', this.checked);
-          eventbus.trigger("allProjectRoads:toggleVisibility", this.checked);
-      });
+
+    $('#roadsVisibleCheckbox').change(function () {
+      eventbus.trigger('allRoads:toggleVisibility', this.checked);
+    });
 
   };
 })(this);
