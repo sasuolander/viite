@@ -508,7 +508,7 @@
     };
     this.withProjectLinks = function (returnData) {
       self.getProjectLinks = function (params, callback) {
-        console.log("withProjectLinks")
+        console.log("withProjectLinks");
         callback(returnData);
         return returnData;
       };

@@ -41,13 +41,11 @@
     };
 
     var handleRoadsVisibility = function() {
-      if (_.isObject(vectorLayer)) {
-        vectorLayer.setVisible(map.getView().getZoom() >= minimumContentZoomLevel()  && $('#roadsVisibleCheckbox')[0].checked);
-      }
+      if (_.isObject(vectorLayer))
+        vectorLayer.setVisible(map.getView().getZoom() >= minimumContentZoomLevel());
     };
 
     var mapMovedHandler = function(mapState) {
-      console.log("WUT");
       if (mapState.zoom !== currentZoom) {
         currentZoom = mapState.zoom;
       }
