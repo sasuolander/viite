@@ -46,14 +46,15 @@
     };
 
     var mapMovedHandler = function(mapState) {
+      console.log("map moved handler 1");
       if (mapState.zoom !== currentZoom) {
         currentZoom = mapState.zoom;
       }
       if (mapState.zoom < minimumContentZoomLevel()) {
         vectorSource.clear();
         eventbus.trigger('map:clearLayers');
-      } else if (mapState.selectedLayer == 'linkProperty'){
-        roadCollection.fetch(map.getView().calculateExtent(map.getSize()).join(','), currentZoom + 1);
+      } else if (mapState.selectedLayer === 'linkProperty'){
+        eventbus.trigger('roadLinks:refreshView');
         handleRoadsVisibility();
       }
 

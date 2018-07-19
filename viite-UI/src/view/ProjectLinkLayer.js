@@ -416,14 +416,13 @@
 
     eventbus.on('layer:selected', function (layer) {
       if (layer === 'roadAddressProject') {
-        var roadNetworkVisible = true; // $('#roadsVisibleCheckbox')[0].checked;
+        var roadNetworkVisible = $('#roadsVisibleCheckbox')[0].checked;
         vectorLayer.setVisible(roadNetworkVisible);
         calibrationPointLayer.setVisible(roadNetworkVisible);
       } else {
         clearHighlights();
         vectorLayer.setVisible(false);
         calibrationPointLayer.setVisible(false);
-        eventbus.trigger('roadLinks:fetched');
       }
     });
 
@@ -507,6 +506,7 @@
     map.addInteraction(selectDoubleClick);
 
     var mapMovedHandler = function (mapState) {
+      console.log("map moved handler 2");
       if (applicationModel.getSelectedTool() === 'Cut' && selectSingleClick.getFeatures().getArray().length > 0)
         return;
       var projectId = _.isUndefined(projectCollection.getCurrentProject()) ? undefined : projectCollection.getCurrentProject().project.id;
@@ -519,7 +519,6 @@
       } else if (mapState.selectedLayer === layerName) {
         projectCollection.fetch(map.getView().calculateExtent(map.getSize()).join(','), currentZoom + 1, projectId, projectCollection.getPublishableStatus());
         handleRoadsVisibility();
-        toggleProjectLayersVisibility($('#roadsVisibleCheckbox')[0].checked, true);
       }
     };
 
@@ -573,7 +572,7 @@
 
     var handleRoadsVisibility = function () {
       if (_.isObject(vectorLayer)) {
-        vectorLayer.setVisible(map.getView().getZoom() >= minimumContentZoomLevel());
+        vectorLayer.setVisible(map.getView().getZoom() >= minimumContentZoomLevel() && $('#roadsVisibleCheckbox')[0].checked);
       }
     };
 
@@ -815,6 +814,7 @@
     });
 
     me.redraw = function () {
+      console.log("REDRAW");
       var ids = {};
       _.each(selectedProjectLinkProperty.get(), function (sel) {
         ids[sel.linkId] = true;
@@ -860,7 +860,7 @@
       });
 
       _.each(suravageDirectionRoadMarker, function (directionLink) {
-          var marker = cachedMarker.createProjectMarker(directionLink);
+        var marker = cachedMarker.createProjectMarker(directionLink);
         if (map.getView().getZoom() > zoomlevels.minZoomForDirectionalMarkers) {
           suravageProjectDirectionMarkerLayer.getSource().addFeature(marker);
           selectSingleClick.getFeatures().push(marker);
@@ -972,13 +972,15 @@
     eventbus.on('roadAddressProject:fetched', function () {
       applicationModel.removeSpinner();
       me.redraw();
-      toggleProjectLayersVisibility();
+      console.log("fetched redraw");
       _.defer(function () {
+        console.log("eka");
         highlightFeatures();
-          if (selectedProjectLinkProperty.isSplit()) {
-              drawIndicators(selectedProjectLinkProperty.get());
-          }
+        if (selectedProjectLinkProperty.isSplit()) {
+          drawIndicators(selectedProjectLinkProperty.get());
+        }
       });
+      console.log("toka");
     });
 
     eventbus.on('roadAddress:projectLinksEdited', function () {
@@ -1068,8 +1070,9 @@
           if (withRoadLayer) {
               roadLayer.layer.setVisible(visibility);
           }
+          console.log("LOPPULOPPU");
       };
-      toggleProjectLayersVisibility(true);
+      toggleProjectLayersVisibility(true, true);
     map.addLayer(vectorLayer);
     map.addLayer(suravageRoadProjectLayer);
     map.addLayer(calibrationPointLayer);

@@ -60,6 +60,7 @@
     };
 
     var setProjectButton = function(newState){
+      console.log("set project button: ", newState);
       if(projectButton !== newState){
         projectButton = newState;
       }
@@ -135,6 +136,7 @@
         setZoomLevel(zoom);
         centerLonLat = center;
         eventbus.trigger('map:moved', {selectedLayer: selectedLayer, zoom: zoom, bbox: bbox, center: center, hasZoomLevelChanged: hasZoomLevelChanged});
+        eventbus.trigger('allRoads:toggleVisibility',  $('#roadsVisibleCheckbox')[0].checked);
       },
       getUserGeoLocation: getUserGeoLocation,
       setSelectedTool: setSelectedTool,

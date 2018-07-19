@@ -128,7 +128,7 @@
     new ZoomBox(map, mapPluginsContainer);
     new CoordinatesDisplay(map, mapPluginsContainer);
 
-    // Show environment name next to Digiroad logo
+    // Show environment name next to Viite logo
     var notification = jQuery('#notification');
     notification.append(Environment.localizedName());
     notification.append(' Päivämäärä: ' + startupParameters.deploy_date);

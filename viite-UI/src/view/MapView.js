@@ -92,7 +92,8 @@
       console.log(layerToBeShown);
       console.log(layerToBeHidden);
       if (layerToBeHidden) layerToBeHidden.hide(map);
-      layerToBeShown.show(map);
+      if ((layer === "roadAddressProject" || layer === "linkProperty") && $('#roadsVisibleCheckbox')[0].checked)
+        layerToBeShown.show(map);
       applicationModel.setMinDirtyZoomLevel(minZoomForContent());
         enableCtrlModifier = (layer === "roadAddressProject");
     }, this);
@@ -109,6 +110,7 @@
     map.on('moveend', function() {
       applicationModel.moveMap(map.getView().getZoom(), map.getLayers().getArray()[0].getExtent(), map.getView().getCenter());
       setCursor(applicationModel.getSelectedTool());
+      console.log("move end end");
     });
 
     map.on('pointermove', function(event) {
