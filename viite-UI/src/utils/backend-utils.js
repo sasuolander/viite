@@ -10,7 +10,6 @@
       var day = params.day;
       var month = params.month;
       var year = params.year;
-      console.log("getting road links...");
       if (!withHistory)
         return {
           url: 'api/viite/roadlinks?zoom=' + zoom + '&bbox=' + boundingBox
@@ -28,7 +27,6 @@
     });
 
     this.getProjectLinks = createCallbackRequestor(function (params) {
-      console.log("get project links backend");
       var zoom = params.zoom;
       var boundingBox = params.boundingBox;
       var projectId = params.projectId;
@@ -442,7 +440,6 @@
         });
       };
       self.getRoadLinks = function (boundingBox, callback) {
-        console.log("self get road links");
         if (afterSave) {
             callback(afterSaveLinkData);
         } else {
@@ -510,7 +507,6 @@
     };
     this.withProjectLinks = function (returnData) {
       self.getProjectLinks = function (params, callback) {
-        console.log("withProjectLinks");
         callback(returnData);
         return returnData;
       };

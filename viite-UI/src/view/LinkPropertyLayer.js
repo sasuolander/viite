@@ -166,8 +166,6 @@
     map.addLayer(historicRoadsLayer);
 
       var toggleLayerVisibility = function (visibleToggle, withVectorLayer) {
-          console.log("toggle layer visible");
-          console.log(visibleToggle);
           floatingMarkerLayer.setVisible(visibleToggle);
           anomalousMarkerLayer.setVisible(visibleToggle);
           suravageMarkerLayer.setVisible(visibleToggle);
@@ -182,7 +180,6 @@
           reservedRoadLayer.setVisible(visibleToggle);
           historicRoadsLayer.setVisible(visibleToggle);
           if (withVectorLayer) {
-            console.log(roadLayer.layer);
             roadLayer.layer.setVisible(visibleToggle);
           }
       };
@@ -211,7 +208,6 @@
     };
 
     var setGeneralOpacity = function (opacity){
-      console.log("set general opacity: ", opacity);
       roadLayer.layer.setOpacity(opacity);
       floatingMarkerLayer.setOpacity(opacity);
       anomalousMarkerLayer.setOpacity(opacity);
@@ -261,7 +257,6 @@
       //Since the selected features are moved to a new/temporary layer we just need to reduce the roadlayer's opacity levels.
       if (event.selected.length !== 0) {
         if (roadLayer.layer.getOpacity() === 1) {
-          console.log("1");
           setGeneralOpacity(0.2);
         }
         var selection = _.find(event.selected, function(selectionTarget){
@@ -338,8 +333,6 @@
       if (!_.isUndefined(selection)) {
         if (event.selected.length !== 0) {
           if (roadLayer.layer.getOpacity() === 1) {
-            console.log("2");
-
             setGeneralOpacity(0.2);
           }
             if (selection.linkData.roadLinkType === RoadLinkType.FloatingRoadLinkType.value &&
@@ -552,7 +545,6 @@
     };
 
     var draw = function() {
-      console.log("DRAW");
       var marker;
       var middlefloating;
       cachedLinkPropertyMarker = new LinkPropertyMarker(selectedLinkProperty);
@@ -668,7 +660,6 @@
 
     this.refreshView = function() {
       //Generalize the zoom levels as the resolutions and zoom levels differ between map tile sources
-      console.log("refresh view");
       roadCollection.reset();
       roadCollection.fetch(map.getView().calculateExtent(map.getSize()), map.getView().getZoom());
       suravageRoadLayer.changed();
@@ -758,7 +749,6 @@
         });
         unhighlightFeatures();
         roadLayer.redraw();
-        console.log("nope redraw");
         var current = selectedLinkProperty.get();
         _.forEach(current, function(road){
           var feature = _.find(roadLayer.layer.getSource().getFeatures(), function (feature) {
@@ -911,7 +901,6 @@
 
         clearHighlights();
         greenRoadLayer.getSource().clear();
-        console.log("3");
         setGeneralOpacity(0.2);
 
         _.each(simulatedOL3Features, function(elem) {
@@ -1141,7 +1130,6 @@
     };
 
     eventbus.on('linkProperties:highlightSelectedProject', function(featureLinkId) {
-      console.log("4");
       setGeneralOpacity(0.2);
         var boundingBox = map.getView().calculateExtent(map.getSize());
         var zoomLevel = map.getView().getZoom();
@@ -1178,7 +1166,6 @@
           pickRoadsLayer.getSource().addFeature(feature);
       });
       pickRoadsLayer.setOpacity(1);
-      console.log("5");
       setGeneralOpacity(0.2);
     };
 
@@ -1191,7 +1178,6 @@
           pickRoadsLayer.getSource().addFeature(feature);
       });
       pickRoadsLayer.setOpacity(1);
-      console.log("6");
       setGeneralOpacity(0.2);
     };
 
@@ -1409,11 +1395,9 @@
         indicatorLayer.getSource().clear();
       }
       if ('floating' === applicationModel.getSelectionType()) {
-        console.log("7");
         setGeneralOpacity(0.2);
         floatingMarkerLayer.setOpacity(1);
       } else if ('unknown' === applicationModel.getSelectionType()) {
-        console.log("8");
         setGeneralOpacity(0.2);
         anomalousMarkerLayer.setOpacity(1);
       }
@@ -1480,7 +1464,6 @@
     });
 
     eventListener.listenTo(eventbus, 'roadAddressProject:clearOnClose', function(){
-      console.log("clear on close (opacity = 1)");
       setGeneralOpacity(1);
       reservedRoadLayer.getSource().clear();
       applicationModel.setReadOnly(true);

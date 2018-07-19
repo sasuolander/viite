@@ -354,7 +354,6 @@
       });
 
       eventbus.on('roadAddress:openProject', function (result) {
-        console.log("OPEN PROJECT");
         currentProject = result.project;
         currentPublishedNetworkDate = result.publishedNetworkDate;
         projectCollection.setProjectErrors(result.projectErrors);
@@ -371,7 +370,6 @@
           eventbus.trigger('linkProperties:selectedProject', result.linkId, result.project);
           eventbus.trigger('roadAddressProject:deactivateAllSelections');
         }
-        console.log("set project button 1");
         applicationModel.setProjectButton(true);
         applicationModel.setProjectFeature(currentProject.id);
         applicationModel.setOpenProject(true);
@@ -551,9 +549,7 @@
         projectCollection.clearRoadAddressProjects();
         projectCollection.clearProjectErrors();
         eventbus.trigger('layer:enableButtons', true);
-        console.log("project closed");
         if (changeLayerMode) {
-          console.log("change layer mode");
           eventbus.trigger('roadAddressProject:clearOnClose');
           applicationModel.selectLayer('linkProperty', true, noSave);
           eventbus.trigger('roadLinks:refreshView');

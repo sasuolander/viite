@@ -583,11 +583,9 @@
       eventbus.on('roadLayer:toggleProjectSelectionInForm', function(layer, noSave) {
         if (layer === "linkProperty") {
           addOpenProjectButton();
-          console.log("wtf 1?");
           if (noSave) {
             $('#formProjectButton').click();
           } else {
-            console.log("wtf 2?");
             eventbus.once('roadAddress:projectSaved', function() {
               $('#formProjectButton').click();
             });

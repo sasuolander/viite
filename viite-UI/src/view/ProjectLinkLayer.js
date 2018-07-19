@@ -506,7 +506,6 @@
     map.addInteraction(selectDoubleClick);
 
     var mapMovedHandler = function (mapState) {
-      console.log("map moved handler 2");
       if (applicationModel.getSelectedTool() === 'Cut' && selectSingleClick.getFeatures().getArray().length > 0)
         return;
       var projectId = _.isUndefined(projectCollection.getCurrentProject()) ? undefined : projectCollection.getCurrentProject().project.id;
@@ -814,7 +813,6 @@
     });
 
     me.redraw = function () {
-      console.log("REDRAW");
       var ids = {};
       _.each(selectedProjectLinkProperty.get(), function (sel) {
         ids[sel.linkId] = true;
@@ -972,15 +970,12 @@
     eventbus.on('roadAddressProject:fetched', function () {
       applicationModel.removeSpinner();
       me.redraw();
-      console.log("fetched redraw");
       _.defer(function () {
-        console.log("eka");
         highlightFeatures();
         if (selectedProjectLinkProperty.isSplit()) {
           drawIndicators(selectedProjectLinkProperty.get());
         }
       });
-      console.log("toka");
     });
 
     eventbus.on('roadAddress:projectLinksEdited', function () {
@@ -1061,7 +1056,6 @@
       clearHighlights();
     });
       var toggleProjectLayersVisibility = function (visibility, withRoadLayer) {
-        console.log("toggle project layers visible");
           vectorLayer.setVisible(visibility);
           suravageRoadProjectLayer.setVisible(visibility);
           calibrationPointLayer.setVisible(visibility);
@@ -1070,7 +1064,6 @@
           if (withRoadLayer) {
               roadLayer.layer.setVisible(visibility);
           }
-          console.log("LOPPULOPPU");
       };
       toggleProjectLayersVisibility(true, true);
     map.addLayer(vectorLayer);

@@ -60,7 +60,6 @@
     };
 
     var setProjectButton = function(newState){
-      console.log("set project button: ", newState);
       if(projectButton !== newState){
         projectButton = newState;
       }

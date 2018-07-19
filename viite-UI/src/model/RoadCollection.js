@@ -110,7 +110,6 @@
       });
 
       var fetchProcess = function (fetchedRoadLinks, zoom, drawUnknowns) {
-        console.log("A");
         var selectedLinkIds = _.map(getSelectedRoadLinks(), function(roadLink) {
           return roadLink.getId();
         });
@@ -177,7 +176,6 @@
         if (!_.isUndefined(drawUnknowns) && drawUnknowns) {
           eventbus.trigger('linkProperties:unknownsTreated');
         }
-        console.log("B");
       };
 
     var findSuravageRoadAddressInGroup = function(group) {
@@ -388,7 +386,6 @@
     
     this.findReservedProjectLinks = function(boundingBox, zoomLevel, projectId) {
       backend.getProjectLinks({boundingBox: boundingBox, zoom: zoomLevel, projectId: projectId}, function(fetchedLinks) {
-        console.log("find reserved");
         var notHandledLinks = _.chain(fetchedLinks).flatten().filter(function (link) {
           return link.status ===  LinkStatus.NotHandled.value;
         }).uniq().value();

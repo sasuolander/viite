@@ -46,7 +46,6 @@
     };
 
     var mapMovedHandler = function(mapState) {
-      console.log("map moved handler 1");
       if (mapState.zoom !== currentZoom) {
         currentZoom = mapState.zoom;
       }
