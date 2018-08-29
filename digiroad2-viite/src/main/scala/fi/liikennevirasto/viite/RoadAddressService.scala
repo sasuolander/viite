@@ -895,10 +895,10 @@ class RoadAddressService(roadLinkService: RoadLinkService, eventbus: DigiroadEve
     currentTargetRoadAddresses ++ historyTargetRoadAddresses
   }
 
-  def recalculateRoadAddresses(roadNumber: Long, roadPartNumber: Long): Boolean = {
+  def recalculateRoadAddresses(roadNumber: Long, roadPartNumber: Long, includeHistory: Boolean = false): Boolean = {
     try {
       val roads = RoadAddressDAO.fetchByRoadPart(roadNumber, roadPartNumber, includeFloating = true,
-        includeExpired = false, includeHistory = false)
+        includeExpired = false, includeHistory)
       if (!roads.exists(_.floating)) {
         try {
           val adjusted = LinkRoadAddressCalculator.recalculate(roads)
