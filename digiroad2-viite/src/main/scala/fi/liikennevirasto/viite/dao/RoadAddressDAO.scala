@@ -617,7 +617,7 @@ object RoadAddressDAO {
     }
   }
 
-  def fetchByRoadPart(roadNumber: Long, roadPartNumber: Long, startDate: Option[DateTime], endDate: Option[DateTime], includeFloating: Boolean = false, includeExpired: Boolean = false): List[RoadAddress] = {
+  def fetchHistoryByRoadPart(roadNumber: Long, roadPartNumber: Long, startDate: Option[DateTime], endDate: Option[DateTime], includeFloating: Boolean = false, includeExpired: Boolean = false): List[RoadAddress] = {
     time(logger, "Fetch road addresses by road part by period of time") {
       val floating = if (!includeFloating)
         "ra.floating='0' AND"

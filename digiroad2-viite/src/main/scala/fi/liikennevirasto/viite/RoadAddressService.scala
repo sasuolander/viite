@@ -397,7 +397,7 @@ class RoadAddressService(roadLinkService: RoadLinkService, eventbus: DigiroadEve
           val adjustedRoadParts = changedRoadParts.filter { case (roadNumber, roadPartNumber, startDate, endDate) => recalculateRoadAddresses(roadNumber, roadPartNumber, startDate, endDate) }
 
           // re-fetch after recalculation
-          val adjustedAddresses = adjustedRoadParts.flatMap { case (road, part, startDate, endDate) => RoadAddressDAO.fetchByRoadPart(road, part, startDate, endDate, includeFloating = true) }
+          val adjustedAddresses = adjustedRoadParts.flatMap { case (road, part, startDate, endDate) => RoadAddressDAO.fetchHistoryByRoadPart(road, part, startDate, endDate, includeFloating = true) }
 
           val changedRoadAddresses = adjustedAddresses ++ RoadAddressDAO.fetchByIdMassQuery(ids -- adjustedAddresses.map(_.id), includeFloating = true)
           changedRoadAddresses.groupBy(cra => (cra.linkId, cra.commonHistoryId)).map(s => LinkRoadAddressHistory(s._2.toSeq.partition(_.endDate.isEmpty))).toSeq
@@ -902,7 +902,7 @@ class RoadAddressService(roadLinkService: RoadLinkService, eventbus: DigiroadEve
           case (None, None) =>
             RoadAddressDAO.fetchByRoadPart(roadNumber, roadPartNumber, includeFloating = true)
           case _ =>
-            RoadAddressDAO.fetchByRoadPart(roadNumber, roadPartNumber, startDate, endDate, includeFloating = true)
+            RoadAddressDAO.fetchHistoryByRoadPart(roadNumber, roadPartNumber, startDate, endDate, includeFloating = true)
         }
 
       if (!roadAddresses.exists(_.floating)) {
