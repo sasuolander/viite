@@ -391,11 +391,13 @@ class RoadAddressService(roadLinkService: RoadLinkService, eventbus: DigiroadEve
 
           checkRoadAddressFloatingWithoutTX(addressesExceptNew.map(_.linkId).toSet, float = true)
           val ids = RoadAddressDAO.create(savedRoadAddresses).toSet ++ addressesExceptNew.map(_.id).toSet
-          val changedRoadParts = addressesToCreate.map(a => (a.roadNumber, a.roadPartNumber)).toSet
 
-          val adjustedRoadParts = changedRoadParts.filter { x => recalculateRoadAddresses(x._1, x._2) }
+
+          val changedRoadParts = addressesToCreate.map(a => (a.roadNumber, a.roadPartNumber, a.startDate, a.endDate)).toSet
+          val adjustedRoadParts = changedRoadParts.filter { case (roadNumber, roadPartNumber, startDate, endDate) => recalculateRoadAddresses(roadNumber, roadPartNumber, startDate, endDate) }
+
           // re-fetch after recalculation
-          val adjustedAddresses = adjustedRoadParts.flatMap { case (road, part) => RoadAddressDAO.fetchByRoadPart(road, part) }
+          val adjustedAddresses = adjustedRoadParts.flatMap { case (road, part, startDate, endDate) => RoadAddressDAO.fetchByRoadPart(road, part, startDate, endDate, includeFloating = true) }
 
           val changedRoadAddresses = adjustedAddresses ++ RoadAddressDAO.fetchByIdMassQuery(ids -- adjustedAddresses.map(_.id), includeFloating = true)
           changedRoadAddresses.groupBy(cra => (cra.linkId, cra.commonHistoryId)).map(s => LinkRoadAddressHistory(s._2.toSeq.partition(_.endDate.isEmpty))).toSeq
@@ -845,11 +847,8 @@ class RoadAddressService(roadLinkService: RoadLinkService, eventbus: DigiroadEve
         includeTerminated = false)
       RoadAddressDAO.expireById(currentRoadAddresses.map(_.id).toSet)
       RoadAddressDAO.create(roadAddresses, Some(username))
-      val roadNumber = roadAddresses.head.roadNumber.toInt
-      val roadPartNumber = roadAddresses.head.roadPartNumber.toInt
-      if(RoadAddressDAO.fetchFloatingRoadAddressesBySegment(roadNumber, roadPartNumber).filterNot(address => sourceIds.contains(address.linkId)).isEmpty) {
-        if (!recalculateRoadAddresses(roadNumber, roadPartNumber))
-          throw new RoadAddressException(s"Road address recalculation failed for $roadNumber / $roadPartNumber")
+      roadAddresses.groupBy(ra => (ra.roadNumber, ra.roadPartNumber, ra.startDate, ra.endDate)).foreach {
+        case ((roadNumber, roadPartNumber, startDate, endDate), _) => recalculateRoadAddresses(roadNumber, roadPartNumber, startDate, endDate)
       }
       RoadAddressDAO.fetchAllFloatingRoadAddresses().nonEmpty
     }
@@ -895,28 +894,40 @@ class RoadAddressService(roadLinkService: RoadLinkService, eventbus: DigiroadEve
     currentTargetRoadAddresses ++ historyTargetRoadAddresses
   }
 
-  def recalculateRoadAddresses(roadNumber: Long, roadPartNumber: Long, includeHistory: Boolean = false): Boolean = {
+  def recalculateRoadAddresses(roadNumber: Long, roadPartNumber: Long, startDate: Option[DateTime] = None, endDate: Option[DateTime] = None): Boolean = {
     try {
-      val roads = RoadAddressDAO.fetchByRoadPart(roadNumber, roadPartNumber, includeFloating = true,
-        includeExpired = false, includeHistory)
-      if (!roads.exists(_.floating)) {
-        try {
-          val adjusted = LinkRoadAddressCalculator.recalculate(roads)
-          assert(adjusted.size == roads.size)
-          // Must not lose any
-          val (changed, unchanged) = adjusted.partition(ra =>
-            roads.exists(oldra => ra.id == oldra.id && (oldra.startAddrMValue != ra.startAddrMValue || oldra.endAddrMValue != ra.endAddrMValue))
-          )
-          logger.info(s"Road $roadNumber, part $roadPartNumber: ${changed.size} updated, ${unchanged.size} kept unchanged")
-          changed.foreach(addr => RoadAddressDAO.update(addr, None))
-          return true
-        } catch {
-          case ex: InvalidAddressDataException => logger.error(s"!!! Road $roadNumber, part $roadPartNumber contains invalid address data - part skipped !!!", ex)
+
+      val roadAddresses =
+        (startDate, endDate) match {
+          case (None, None) =>
+            RoadAddressDAO.fetchByRoadPart(roadNumber, roadPartNumber, includeFloating = true)
+          case _ =>
+            RoadAddressDAO.fetchByRoadPart(roadNumber, roadPartNumber, startDate, endDate, includeFloating = true)
+        }
+
+      if (!roadAddresses.exists(_.floating)) {
+        roadAddresses.groupBy(ra => (ra.startDate, ra.endDate)).foreach {
+          case (_, roads) =>
+            try {
+              val adjusted = LinkRoadAddressCalculator.recalculate(roads)
+              assert(adjusted.size == roads.size)
+              // Must not lose any
+              val (changed, unchanged) = adjusted.partition(ra =>
+                roads.exists(oldra => ra.id == oldra.id && (oldra.startAddrMValue != ra.startAddrMValue || oldra.endAddrMValue != ra.endAddrMValue))
+              )
+              logger.info(s"Road $roadNumber, part $roadPartNumber: ${changed.size} updated, ${unchanged.size} kept unchanged")
+              changed.foreach(addr => RoadAddressDAO.update(addr, None))
+              return true
+            } catch {
+              //TODO check if that exception shouldn't be propagated
+              case ex: InvalidAddressDataException => logger.error(s"!!! Road $roadNumber, part $roadPartNumber contains invalid address data - part skipped !!!", ex)
+            }
         }
       } else {
         logger.info(s"Not recalculating $roadNumber / $roadPartNumber because floating segments were found")
       }
     } catch {
+      //TODO check if that exception shouldn't be propagated at least if someting goes wrong with the update it should do all or nothing
       case a: Exception => logger.error(a.getMessage, a)
     }
     false

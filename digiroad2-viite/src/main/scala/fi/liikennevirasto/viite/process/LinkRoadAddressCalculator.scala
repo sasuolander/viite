@@ -17,7 +17,7 @@ object LinkRoadAddressCalculator {
   def recalculate[T <: BaseRoadAddress](addressList: Seq[T]): Seq[T] = {
     if (!addressList.forall(ra => ra.roadNumber == addressList.head.roadNumber))
       throw new InvalidAddressDataException("Multiple road numbers present in source data")
-    addressList.groupBy(ra => (ra.roadPartNumber, ra.startDate, ra.endDate)).flatMap{ case (_, seq) => recalculatePart(seq) }.toSeq
+    addressList.groupBy(_.roadPartNumber).flatMap{ case (_, seq) => recalculatePart(seq) }.toSeq
   }
 
   /**

@@ -617,6 +617,46 @@ object RoadAddressDAO {
     }
   }
 
+  def fetchByRoadPart(roadNumber: Long, roadPartNumber: Long, startDate: Option[DateTime], endDate: Option[DateTime], includeFloating: Boolean = false, includeExpired: Boolean = false): List[RoadAddress] = {
+    time(logger, "Fetch road addresses by road part by period of time") {
+      val floating = if (!includeFloating)
+        "ra.floating='0' AND"
+      else
+        ""
+
+      val expiredFilter = if (!includeExpired)
+        "ra.valid_to IS NULL AND"
+      else
+        ""
+
+      val startDateFilter = startDate match {
+        case Some(date) => s"""ra.start_date = $date AND"""
+        case _ => ""
+      }
+
+      val endDateFilter = endDate match {
+        case Some(date) => s"""ra.end_date = $date"""
+        case _ => s"""ra.start_date is null"""
+      }
+
+
+      val query =
+        s"""
+        select ra.id, ra.road_number, ra.road_part_number, ra.road_type, ra.track_code,
+        ra.discontinuity, ra.start_addr_m, ra.end_addr_m, ra.link_id, ra.start_measure, ra.end_measure,
+        ra.side_code, ra.adjusted_timestamp,
+        ra.start_date, ra.end_date, ra.created_by, ra.valid_from, ra.CALIBRATION_POINTS, ra.floating, t.X, t.Y, t2.X, t2.Y, ra.link_source, ra.ely, ra.terminated, ra.common_history_id, ra.valid_to,
+        (SELECT rn.road_name FROM ROAD_NAMES rn WHERE rn.ROAD_NUMBER = ra.ROAD_NUMBER AND rn.END_DATE IS NULL AND rn.VALID_TO IS NULL)
+        from road_address ra cross join
+        TABLE(SDO_UTIL.GETVERTICES(ra.geometry)) t cross join
+        TABLE(SDO_UTIL.GETVERTICES(ra.geometry)) t2
+        where $floating $expiredFilter ra.road_number = $roadNumber AND ra.road_part_number = $roadPartNumber and t.id < t2.id AND $startDateFilter $endDateFilter
+        ORDER BY ra.road_number, ra.road_part_number, ra.track_code, ra.start_addr_m
+      """
+      queryList(query)
+    }
+  }
+
   def fetchByRoadPart(roadNumber: Long, roadPartNumber: Long, includeFloating: Boolean = false, includeExpired: Boolean = false,
                       includeHistory: Boolean = false, includeSuravage: Boolean = true, fetchOnlyEnd: Boolean = false, fetchOnlyStart: Boolean = false): List[RoadAddress] = {
     time(logger, "Fetch road addresses by road part") {
