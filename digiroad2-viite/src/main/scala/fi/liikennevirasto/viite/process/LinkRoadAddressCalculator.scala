@@ -1,8 +1,10 @@
 package fi.liikennevirasto.viite.process
 
 import fi.liikennevirasto.digiroad2.util.Track
+import fi.liikennevirasto.viite.dao.CalibrationCode.{AtBeginning, AtEnd}
 import fi.liikennevirasto.viite.dao.CalibrationPointDAO.BaseCalibrationPoint
-import fi.liikennevirasto.viite.dao.{BaseRoadAddress, CalibrationPoint, ProjectLink, RoadAddress}
+import fi.liikennevirasto.viite.dao._
+import fi.liikennevirasto.viite.util.CalibrationPointsUtils
 
 trait LinkRoadAddressCalculator {
   def recalculate[T <: BaseRoadAddress](addressList: Seq[T]): Seq[T]
@@ -43,24 +45,52 @@ object LinkRoadAddressCalculator {
   }
 
   private def segmentize[T <: BaseRoadAddress](addresses: Seq[T], processed: Seq[T]): Seq[T] = {
-    if (addresses.isEmpty)
+    if(addresses.isEmpty)
       return processed
-    val calibrationPointsS = addresses.flatMap(ra =>
-      ra.calibrationPoints._1).sortBy(_.addressMValue)
-    val calibrationPointsE = addresses.flatMap(ra =>
-      ra.calibrationPoints._2).sortBy(_.addressMValue)
-    if (calibrationPointsS.isEmpty || calibrationPointsE.isEmpty)
-      throw new InvalidAddressDataException("Ran out of calibration points")
-    val startCP = calibrationPointsS.head
-    val endCP = calibrationPointsE.head
-    if (calibrationPointsS.tail.exists(_.addressMValue < endCP.addressMValue)) {
-      throw new InvalidAddressDataException("Starting calibration point without an ending one")
+
+    if(addresses.size == 1)
+      return processed ++ addresses
+
+    val sortedAddresses = addresses.sortBy(_.startAddrMValue)
+    val (segmentsPairs, othersPairs) = sortedAddresses.zip(sortedAddresses.tail).span {
+      case (pAddress, nAddress) =>
+        (pAddress.calibrationPoints._2,nAddress.calibrationPoints._1) match {
+          case (None, None) => pAddress.endAddrMValue == nAddress.startAddrMValue
+          case (Some(_), Some(_)) => false
+          case _ => throw new InvalidAddressDataException("Calibration point without a starting or ending")
+        }
     }
-    // Test if this link is calibrated on both ends. Special case, then.
-    val cutPoint = addresses.indexWhere(_.calibrationPoints._2.contains(endCP)) + 1
-    val (segments, others) = addresses.splitAt(cutPoint)
-    segmentize(others, processed ++ adjustGeometry(segments, startCP, endCP))
+
+    val segments = segmentsPairs.head._1 +: segmentsPairs.map(_._2)
+    val others = if(othersPairs.isEmpty) Seq() else othersPairs.last._1 +: othersPairs.map(_._2)
+
+    val startCP = CalibrationPointsUtils.makeStartCP(segments.head)
+    val endCP = CalibrationPointsUtils.makeEndCP(segments.last)
+
+    segmentize(others, processed ++ adjustGeometry(segments, startCP.get, endCP.get))
   }
+
+//  private def segmentize[T <: BaseRoadAddress](addresses: Seq[T], processed: Seq[T]): Seq[T] = {
+//    if (addresses.isEmpty)
+//      return processed
+//    val calibrationPointsS = addresses.flatMap(ra =>
+//      ra.calibrationPoints._1).sortBy(_.addressMValue)
+//    val calibrationPointsE = addresses.flatMap(ra =>
+//      ra.calibrationPoints._2).sortBy(_.addressMValue)
+//    if (calibrationPointsS.isEmpty || calibrationPointsE.isEmpty)
+//      throw new InvalidAddressDataException("Ran out of calibration points")
+//
+//    val startCP = calibrationPointsS.head
+//    val endCP = calibrationPointsE.head
+//
+//    if (calibrationPointsS.tail.exists(_.addressMValue < endCP.addressMValue)) {
+//      throw new InvalidAddressDataException("Starting calibration point without an ending one")
+//    }
+//    // Test if this link is calibrated on both ends. Special case, then.
+//    val cutPoint = addresses.indexWhere(_.calibrationPoints._2.contains(endCP)) + 1
+//    val (segments, others) = addresses.splitAt(cutPoint)
+//    segmentize(others, processed ++ adjustGeometry(segments, startCP, endCP))
+//  }
 
   private def linkLength(roadAddress: BaseRoadAddress) = {
     roadAddress.endMValue - roadAddress.startMValue

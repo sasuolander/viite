@@ -25,6 +25,7 @@ import org.slf4j.LoggerFactory
 import slick.driver.JdbcDriver.backend.Database.dynamicSession
 import slick.jdbc.StaticQuery.interpolation
 import slick.jdbc.{GetResult, PositionedResult, StaticQuery => Q}
+import slick.jdbc._
 
 
 //JATKUVUUS (1 = Tien loppu, 2 = epäjatkuva (esim. vt9 välillä Akaa-Tampere), 3 = ELY:n raja, 4 = Lievä epäjatkuvuus (esim kiertoliittymä), 5 = jatkuva)
@@ -620,28 +621,27 @@ object RoadAddressDAO {
   def fetchHistoryByRoadPart(roadNumber: Long, roadPartNumber: Long, startDate: Option[DateTime], endDate: Option[DateTime], includeFloating: Boolean = false, includeExpired: Boolean = false): List[RoadAddress] = {
     time(logger, "Fetch road addresses by road part by period of time") {
       val floating = if (!includeFloating)
-        "ra.floating='0' AND"
+        "ra.floating='0' AND "
       else
         ""
 
       val expiredFilter = if (!includeExpired)
-        "ra.valid_to IS NULL AND"
+        "ra.valid_to IS NULL AND "
       else
         ""
 
       val startDateFilter = startDate match {
-        case Some(date) => s"""ra.start_date = $date AND"""
+        case Some(date) => s"""ra.start_date = TO_DATE('${dateFormatter.print(date)}', 'YYYY-MM-DD') AND """
         case _ => ""
       }
 
       val endDateFilter = endDate match {
-        case Some(date) => s"""ra.end_date = $date"""
-        case _ => s"""ra.start_date is null"""
+        case Some(date) => s"""ra.end_date = TO_DATE('${dateFormatter.print(date)}', 'YYYY-MM-DD')"""
+        case _ => s"""ra.end_date is null"""
       }
 
 
-      val query =
-        s"""
+      val query = s"""
         select ra.id, ra.road_number, ra.road_part_number, ra.road_type, ra.track_code,
         ra.discontinuity, ra.start_addr_m, ra.end_addr_m, ra.link_id, ra.start_measure, ra.end_measure,
         ra.side_code, ra.adjusted_timestamp,
