@@ -124,7 +124,7 @@ object RoadAddressFiller {
         val generatedLinks = buildMissingRoadAddress(roadLink, generatedRoadAddresses)
         (existingSegments ++ adjustedSegments ++ generatedLinks,
           segmentAdjustments.copy(missingRoadAddresses = segmentAdjustments.missingRoadAddresses ++
-            generatedRoadAddresses.filterNot(_.anomaly == Anomaly.None)))
+            generatedRoadAddresses))
       }
     }
   }
