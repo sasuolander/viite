@@ -111,7 +111,7 @@ module.exports = function(grunt) {
             }
           },
           {
-            context: '/wmts',
+            context: '/maasto',
             host: 'karttamoottori.maanmittauslaitos.fi',
             https: false,
             changeOrigin: true,
