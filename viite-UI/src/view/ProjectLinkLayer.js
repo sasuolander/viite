@@ -134,15 +134,22 @@
     selectSingleClick.on('select', function (event) {
       var ctrlPressed = event.mapBrowserEvent !== undefined ? event.mapBrowserEvent.originalEvent.ctrlKey : false;
       removeCutterMarkers();
-      var selection = _.find(event.selected.concat(selectSingleClick.getFeatures().getArray()), function (selectionTarget) {
+      var rawSelection = map.forEachFeatureAtPixel(event.mapBrowserEvent.pixel, function(feature) {
+        return feature
+      });
+      var selection = _.find(ctrlPressed ? [rawSelection] : [rawSelection].concat(selectSingleClick.getFeatures().getArray()), function (selectionTarget) {
+        if (!_.isUndefined(selectionTarget))
           return (applicationModel.getSelectedTool() !== 'Cut' && !_.isUndefined(selectionTarget.linkData) && (
                   projectLinkStatusIn(selectionTarget.linkData, possibleStatusForSelection) ||
                   (selectionTarget.linkData.anomaly === Anomaly.NoAddressGiven.value && selectionTarget.linkData.roadLinkType !== RoadLinkType.FloatingRoadLinkType.value) ||
-                  selectionTarget.linkData.roadClass === RoadClass.NoClass.value || selectionTarget.linkData.roadLinkSource === LinkGeomSource.SuravageLinkInterface.value)
-        );
+                  selectionTarget.linkData.roadClass === RoadClass.NoClass.value || selectionTarget.linkData.roadLinkSource === LinkGeomSource.SuravageLinkInterface.value || (selectionTarget.getProperties().type && selectionTarget.getProperties().type === "marker"))
+          );
+        else return false;
       });
-      if (isNotEditingData) {
-          showSingleClickChanges(ctrlPressed, selection);
+      if (ctrlPressed) {
+        showDoubleClickChanges(ctrlPressed, selection);
+      } else if (isNotEditingData) {
+        showSingleClickChanges(ctrlPressed, selection);
       } else {
         var selectedFeatures = event.deselected.concat(selectDoubleClick.getFeatures().getArray());
         clearHighlights();
@@ -154,11 +161,11 @@
       var showSingleClickChanges = function (ctrlPressed, selection) {
           if (applicationModel.getSelectedTool() === 'Cut')
         return;
-          if (ctrlPressed && !_.isUndefined(selectedProjectLinkProperty.get())) {
+          if (ctrlPressed && !_.isUndefined(selection) && !_.isUndefined(selectedProjectLinkProperty.get())) {
               if (!_.isUndefined(selection) && canItBeAddToSelection(selection.linkData)) {
                   var clickedIds = projectCollection.getMultiProjectLinks(getSelectedId(selection.linkData));
           var previouslySelectedIds = _.map(selectedProjectLinkProperty.get(), function (selected) {
-            return selected.linkId;
+            return getSelectedId(selected);
           });
                   if (_.contains(previouslySelectedIds, getSelectedId(selection.linkData))) {
             previouslySelectedIds = _.without(previouslySelectedIds, clickedIds);
@@ -195,7 +202,7 @@
     selectDoubleClick.set('name', 'selectDoubleClickInteractionPLL');
 
     selectDoubleClick.on('select', function (event) {
-        var ctrlPressed = event.mapBrowserEvent.originalEvent.ctrlKey;
+      var ctrlPressed = event.mapBrowserEvent.originalEvent.ctrlKey;
       var selection = _.find(event.selected, function (selectionTarget) {
           return (applicationModel.getSelectedTool() !== 'Cut' && !_.isUndefined(selectionTarget.linkData) && (
                   projectLinkStatusIn(selectionTarget.linkData, possibleStatusForSelection) ||
@@ -209,20 +216,20 @@
         var selectedFeatures = event.deselected.concat(selectSingleClick.getFeatures().getArray());
         clearHighlights();
         addFeaturesToSelection(selectedFeatures);
-          fireDeselectionConfirmation(ctrlPressed, selection, 'double');
+        fireDeselectionConfirmation(ctrlPressed, selection, 'double');
       }
     });
 
-    var showDoubleClickChanges = function (shiftPressed, selection) {
-      if (shiftPressed && !_.isUndefined(selectedProjectLinkProperty.get())) {
+    var showDoubleClickChanges = function (ctrlPressed, selection) {
+      if (ctrlPressed && !_.isUndefined(selectedProjectLinkProperty.get())) {
           if (!_.isUndefined(selection) && canItBeAddToSelection(selection.linkData)) {
           var selectedLinkIds = _.map(selectedProjectLinkProperty.get(), function (selected) {
             return getSelectedId(selected);
           });
-              if (_.contains(selectedLinkIds, getSelectedId(selection.linkData))) {
-                  selectedLinkIds = _.without(selectedLinkIds, getSelectedId(selection.linkData));
+          if (_.contains(selectedLinkIds, getSelectedId(selection.linkData))) {
+            selectedLinkIds = _.without(selectedLinkIds, getSelectedId(selection.linkData));
           } else {
-                  selectedLinkIds = selectedLinkIds.concat(getSelectedId(selection.linkData));
+            selectedLinkIds = selectedLinkIds.concat(getSelectedId(selection.linkData));
           }
           selectedProjectLinkProperty.openShift(selectedLinkIds);
         }
@@ -231,51 +238,49 @@
         selectedProjectLinkProperty.clean();
         projectCollection.setTmpDirty([]);
         projectCollection.setDirty([]);
-        if (!_.isUndefined(selection) && !selectedProjectLinkProperty.isDirty()){
-            if (!_.isUndefined(selection.linkData.connectedLinkId)) {
-                selectedProjectLinkProperty.openSplit(selection.linkData.linkId, true);
-          } else {
-                selectedProjectLinkProperty.open(getSelectedId(selection.linkData));
-          }
+        if (!_.isUndefined(selection.linkData.connectedLinkId)) {
+          selectedProjectLinkProperty.openSplit(selection.linkData.linkId, true);
+        } else {
+          selectedProjectLinkProperty.open(getSelectedId(selection.linkData));
         }
         else selectedProjectLinkProperty.cleanIds();
       }
     };
 
-      var drawIndicators = function (links) {
+    var drawIndicators = function (links) {
       var features = [];
 
-          var markerContainer = function (link, position) {
+      var markerContainer = function (link, position) {
         var imageSettings = {src: 'images/center-marker2.svg'};
         var textSettings = {
-            text: link.marker,
+          text: link.marker,
           fill: new ol.style.Fill({
             color: '#ffffff'
           }),
             font: '12px sans-serif'
         };
         var style = new ol.style.Style({
-            image: new ol.style.Icon(imageSettings),
-            text: new ol.style.Text(textSettings),
+          image: new ol.style.Icon(imageSettings),
+          text: new ol.style.Text(textSettings),
           zIndex: 11
         });
         var marker = new ol.Feature({
-            geometry: new ol.geom.Point([position.x, position.y]),
+          geometry: new ol.geom.Point([position.x, position.y]),
           type: 'cutter'
         });
         marker.setStyle(style);
         features.push(marker);
       };
 
-          var indicatorsForSplit = function () {
-              return _.map(_.filter(links, function (fl) {
+      var indicatorsForSplit = function () {
+        return _.map(_.filter(links, function (fl) {
           return !_.isUndefined(fl.middlePoint);
-              }), function (link) {
+        }), function (link) {
           markerContainer(link, link.middlePoint);
         });
       };
 
-          var indicators = function () {
+      var indicators = function () {
         return indicatorsForSplit();
       };
       indicators();
@@ -288,9 +293,9 @@
         }
       var currentlySelectedSample = _.first(selectedProjectLinkProperty.get());
       return selectionData.roadNumber === currentlySelectedSample.roadNumber &&
-          selectionData.roadPartNumber === currentlySelectedSample.roadPartNumber &&
-          selectionData.trackCode === currentlySelectedSample.trackCode &&
-          selectionData.roadType === currentlySelectedSample.roadType;
+        selectionData.roadPartNumber === currentlySelectedSample.roadPartNumber &&
+        selectionData.trackCode === currentlySelectedSample.trackCode &&
+        selectionData.roadType === currentlySelectedSample.roadType;
     };
 
     var clearHighlights = function () {
@@ -323,7 +328,7 @@
       _.each(suravageRoadProjectLayer.getSource().getFeatures(), function (feature) {
           var canIHighlight = (!_.isUndefined(feature.linkData) && !_.isUndefined(feature.linkData.linkId)) ?
               selectedProjectLinkProperty.isSelected(getSelectedId(feature.linkData)) : false;
-        
+
         if (canIHighlight) {
           suravageFeaturesToHighlight.push(feature);
         }
@@ -367,7 +372,7 @@
       });
     };
 
-      var addCutLine = function (cutGeom) {
+    var addCutLine = function (cutGeom) {
       var points = _.map(cutGeom.geometry, function (point) {
         return [point.x, point.y];
       });
@@ -376,7 +381,7 @@
         type: 'cut-line'
       });
       var style = new ol.style.Style({
-          stroke: new ol.style.Stroke({color: [20, 20, 255, 1], width: 9}),
+        stroke: new ol.style.Stroke({color: [20, 20, 255, 1], width: 9}),
         zIndex: 11
       });
       cutFeature.setStyle(style);
@@ -403,8 +408,8 @@
     };
 
     var removeFeaturesByType = function (match) {
-        _.each(selectSingleClick.getFeatures().getArray().concat(selectDoubleClick.getFeatures().getArray()), function (feature) {
-            if (feature && feature.getProperties().type === match) {
+      _.each(selectSingleClick.getFeatures().getArray().concat(selectDoubleClick.getFeatures().getArray()), function (feature) {
+        if (feature && feature.getProperties().type === match) {
           selectSingleClick.getFeatures().remove(feature);
         }
       });
@@ -648,7 +653,7 @@
           type: 'cut-line'
         });
         var style = new ol.style.Style({
-            stroke: new ol.style.Stroke({color: [20, 20, 255, 1], width: 9}),
+          stroke: new ol.style.Stroke({color: [20, 20, 255, 1], width: 9}),
           zIndex: 11
         });
         cutFeature.setStyle(style);
@@ -656,12 +661,12 @@
         addFeaturesToSelection([cutFeature]);
       };
 
-          this.addTerminatedFeature = function (terminatedLink) {
+      this.addTerminatedFeature = function (terminatedLink) {
         var points = _.map(terminatedLink.geometry, function (point) {
           return [point.x, point.y];
         });
         var terminatedFeature = new ol.Feature({
-            linkData: terminatedLink,
+          linkData: terminatedLink,
           geometry: new ol.geom.LineString(points),
           type: 'pre-split'
         });
@@ -674,7 +679,7 @@
         addFeaturesToSelection([terminatedFeature]);
       };
 
-          var clickHandler = function (evt) {
+      var clickHandler = function (evt) {
         if (applicationModel.getSelectedTool() === 'Cut') {
           $('.wrapper').remove();
           removeCutterMarkers();
@@ -683,20 +688,20 @@
         eventbus.trigger('projectLink:clickHandled');
       };
 
-          this.deactivate = function () {
+      this.deactivate = function () {
         eventListener.stopListening(eventbus, 'map:clicked', clickHandler);
         selectedProjectLinkProperty.setDirty(false);
       };
 
-          this.activate = function () {
+      this.activate = function () {
         eventListener.listenTo(eventbus, 'map:clicked map:dblclicked', clickHandler);
       };
 
-          var isWithinCutThreshold = function (suravageLink) {
+      var isWithinCutThreshold = function (suravageLink) {
         return suravageLink !== undefined && suravageLink < CUT_THRESHOLD;
       };
 
-          var findNearestSuravageLink = function (point) {
+      var findNearestSuravageLink = function (point) {
 
         var possibleSplit = _.filter(vectorSource.getFeatures().concat(suravageRoadProjectLayer.getSource().getFeatures()), function(feature){
             return !_.isUndefined(feature.linkData) && (feature.linkData.roadLinkSource === LinkGeomSource.SuravageLinkInterface.value);
@@ -718,7 +723,7 @@
             .value();
       };
 
-          this.updateByPosition = function (mousePoint) {
+      this.updateByPosition = function (mousePoint) {
         var closestSuravageLink = findNearestSuravageLink(mousePoint);
         if (!closestSuravageLink) {
           return;
@@ -730,11 +735,11 @@
         }
       };
 
-          this.cut = function (mousePoint) {
-              var pointsToLineString = function (points) {
-                  var coordPoints = _.map(points, function (point) {
-                      return [point.x, point.y];
-                  });
+      this.cut = function (mousePoint) {
+        var pointsToLineString = function (points) {
+          var coordPoints = _.map(points, function (point) {
+            return [point.x, point.y];
+          });
           return new ol.geom.LineString(coordPoints);
         };
 
@@ -745,34 +750,34 @@
           selectSingleClick.getFeatures().clear();
           return;
         }
-              var nearestSuravage = nearest.feature.linkData;
+        var nearestSuravage = nearest.feature.linkData;
         nearestSuravage.points = _.isUndefined(nearestSuravage.originalGeometry) ? nearestSuravage.points : nearestSuravage.originalGeometry;
         if (!_.isUndefined(nearestSuravage.connectedLinkId)) {
           nearest.feature.geometry = pointsToLineString(nearestSuravage.originalGeometry);
         }
         selectedProjectLinkProperty.setNearestPoint({x: nearest.point[0], y: nearest.point[1]});
         selectedProjectLinkProperty.preSplitSuravageLink(nearestSuravage);
-              projectCollection.setTmpDirty([nearest.feature.linkData]);
+        projectCollection.setTmpDirty([nearest.feature.linkData]);
       };
     };
 
-      var projectLinkStatusIn = function (projectLink, possibleStatus) {
-          if (!_.isUndefined(possibleStatus) && !_.isUndefined(projectLink))
+    var projectLinkStatusIn = function (projectLink, possibleStatus) {
+      if (!_.isUndefined(possibleStatus) && !_.isUndefined(projectLink))
         return _.contains(possibleStatus, projectLink.status);
       else return false;
     };
 
     var suravageCutter = new SuravageCutter(suravageRoadProjectLayer, projectCollection, me.eventListener);
 
-      var changeTool = function (tool) {
-          if (tool === 'Cut') {
-              suravageCutter.activate();
-              selectSingleClick.setActive(false);
-          } else if (tool === 'Select') {
-              suravageCutter.deactivate();
-              selectSingleClick.setActive(true);
-          }
-      };
+    var changeTool = function (tool) {
+      if (tool === 'Cut') {
+        suravageCutter.activate();
+        selectSingleClick.setActive(false);
+      } else if (tool === 'Select') {
+        suravageCutter.deactivate();
+        selectSingleClick.setActive(true);
+      }
+    };
 
     eventbus.on('split:projectLinks', function (split) {
         _.defer(function () {
@@ -886,7 +891,7 @@
         var feature = new ol.Feature({
           geometry: new ol.geom.LineString(points)
         });
-          feature.linkData = projectLink;
+        feature.linkData = projectLink;
         feature.linkId = projectLink.linkId;
         features.push(feature);
       });
