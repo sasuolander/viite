@@ -235,14 +235,16 @@
         }
         highlightFeatures();
       } else {
-        selectedProjectLinkProperty.clean();
-        projectCollection.setTmpDirty([]);
-        projectCollection.setDirty([]);
-        if (!_.isUndefined(selection.linkData.connectedLinkId)) {
-          selectedProjectLinkProperty.openSplit(selection.linkData.linkId, true);
-        } else {
-          selectedProjectLinkProperty.open(getSelectedId(selection.linkData));
-        }
+          selectedProjectLinkProperty.clean();
+          projectCollection.setTmpDirty([]);
+          projectCollection.setDirty([]);
+          if (!_.isUndefined(selection) && !selectedProjectLinkProperty.isDirty()){
+            if (!_.isUndefined(selection.linkData.connectedLinkId)) {
+                selectedProjectLinkProperty.openSplit(selection.linkData.linkId, true);
+            } else {
+                selectedProjectLinkProperty.open(getSelectedId(selection.linkData));
+            }
+      }
         else selectedProjectLinkProperty.cleanIds();
       }
     };
