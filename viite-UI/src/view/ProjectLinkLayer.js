@@ -820,12 +820,22 @@
       projectCollection.fetch(map.getView().calculateExtent(map.getSize()).join(','), currentZoom + 1, undefined, projectCollection.getPublishableStatus());
     });
 
-      me.redraw = function () {
-        toggleProjectLayersVisibility(applicationModel.getRoadVisibility(), true);
-      var ids = {};
-      _.each(selectedProjectLinkProperty.get(), function (sel) {
-        ids[sel.linkId] = true;
+    me.redraw = function () {
+      var checkedBoxLayers = _.filter(layers, function(layer){
+          if((layer.get('name') === 'suravageRoadProjectLayer' || layer.get('name') === 'suravageProjectDirectionMarkerLayer') &&
+              (!suravageRoadProjectLayer.getVisible() || !suravageProjectDirectionMarkerLayer.getVisible())){
+            return false;
+          } else
+            return true;
       });
+      me.toggleLayersVisibility(checkedBoxLayers, applicationModel.getRoadVisibility(), true);
+      var marker;
+      var cachedMarker = new ProjectLinkMarker(selectedProjectLinkProperty);
+
+      calibrationPointLayer.getSource().clear();
+      suravageProjectDirectionMarkerLayer.getSource().clear();
+      suravageRoadProjectLayer.getSource().clear();
+      directionMarkerLayer.getSource().clear();
 
       var editedLinks = _.map(projectCollection.getDirty(), function (editedLink) {
         return editedLink;
