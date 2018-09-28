@@ -497,23 +497,23 @@
         });
       };
 
-      rootElement.on('change', '#nimi', function () {
+      rootElement.on('focus', '#nimi', function () {
         textFieldChangeHandler();
       });
-      rootElement.on('change', '#alkupvm', function () {
+      rootElement.on('focus', '#alkupvm', function () {
         textFieldChangeHandler();
       });
-      rootElement.on('change', '#lisatiedot', function () {
+      rootElement.on('focus', '#lisatiedot', function () {
         textFieldChangeHandler();
       });
 
-      rootElement.on('change', '#tie', function () {
+      rootElement.on('focus', '#tie', function () {
           reserveFieldChangeHandler();
       });
-      rootElement.on('change', '#aosa', function () {
+      rootElement.on('focus', '#aosa', function () {
           reserveFieldChangeHandler();
       });
-      rootElement.on('change', '#losa', function () {
+      rootElement.on('focus', '#losa', function () {
           reserveFieldChangeHandler();
       });
 
