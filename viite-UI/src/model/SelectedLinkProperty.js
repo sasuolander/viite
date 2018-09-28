@@ -541,7 +541,7 @@
 
     var isSelectedByLinkId = function(linkId) {
       return _.some(current, function(selected) {
-        return selected.getData().linkId === linkId; });
+        return !_.isUndefined(selected) && selected.getData().linkId === linkId; });
     };
 
     var transferringCalculation = function(){
