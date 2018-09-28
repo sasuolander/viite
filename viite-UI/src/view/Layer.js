@@ -22,6 +22,11 @@
     this.isStarted = function() {
       return me.eventListener.running;
     };
+    this.toggleLayersVisibility = function (layers, visibleToggle) {
+      _.each(layers, function(layer) {
+        layer.setVisible(visibleToggle);
+      });
+    };
     this.activateSelection = function() {
       if(!_.isUndefined(me.selectControl))
         me.selectControl.activate();

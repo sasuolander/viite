@@ -21,6 +21,7 @@
     var me = this;
     var styler = new RoadLinkStyler(true);
 
+
     var projectLinkStyler = new ProjectLinkStyler();
 
     var vectorSource = new ol.source.Vector({
@@ -84,6 +85,8 @@
       },
       zIndex: RoadZIndex.VectorLayer.value
     });
+
+    var layers = [vectorLayer, calibrationPointLayer, directionMarkerLayer, suravageRoadProjectLayer, suravageProjectDirectionMarkerLayer];
 
     var getSelectedId = function (selected) {
       if (!_.isUndefined(selected.id) && selected.id > 0) {
