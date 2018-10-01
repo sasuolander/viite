@@ -6,6 +6,7 @@
     var directionMarkerVector = new ol.source.Vector({});
     var suravageProjectDirectionMarkerVector = new ol.source.Vector({});
     var suravageRoadVector = new ol.source.Vector({});
+    var anomalousMarkerVector = new ol.source.Vector({});
     var cachedMarker = null;
     var layerMinContentZoomLevels = {};
     var currentZoom = 0;
@@ -19,9 +20,8 @@
     var isNotEditingData = true;
     Layer.call(this, layerName, roadLayer);
     var me = this;
-    var styler = new RoadLinkStyler(true);
 
-
+    var styler = new Styler();
     var projectLinkStyler = new ProjectLinkStyler();
 
     var vectorSource = new ol.source.Vector({
@@ -57,6 +57,12 @@
       zIndex: RoadZIndex.DirectionMarkerLayer.value
     });
 
+    var anomalousMarkerLayer = new ol.layer.Vector({
+      source: anomalousMarkerVector,
+      name: 'anomalousMarkerLayer',
+      zIndex: RoadZIndex.IndicatorLayer.value
+    });
+
     var suravageRoadProjectLayer = new ol.layer.Vector({
       source: suravageRoadVector,
       name: 'suravageRoadProjectLayer',
@@ -76,17 +82,12 @@
       source: vectorSource,
       name: layerName,
       style: function(feature) {
-          var status = feature.linkData.status;
-        if (status === LinkStatus.NotHandled.value || status === LinkStatus.Terminated.value || status  === LinkStatus.New.value || status === LinkStatus.Transfer.value || status === LinkStatus.Unchanged.value || status === LinkStatus.Numbering.value) {
-            return projectLinkStyler.getProjectLinkStyle().getStyle(feature.linkData, {zoomLevel: currentZoom});
-        } else {
-            return styler.getRoadLinkStyle().getStyle(feature.linkData, currentZoom);
-        }
+        return styler.generateStyleByFeature(feature.linkData, map.getView().getZoom());
       },
       zIndex: RoadZIndex.VectorLayer.value
     });
 
-    var layers = [vectorLayer, calibrationPointLayer, directionMarkerLayer, suravageRoadProjectLayer, suravageProjectDirectionMarkerLayer];
+    var layers = [vectorLayer, anomalousMarkerLayer, calibrationPointLayer, directionMarkerLayer, suravageRoadProjectLayer, suravageProjectDirectionMarkerLayer];
 
     var getSelectedId = function (selected) {
       if (!_.isUndefined(selected.id) && selected.id > 0) {
@@ -310,6 +311,7 @@
 
     var clearLayers = function () {
       calibrationPointLayer.getSource().clear();
+      anomalousMarkerLayer.getSource.clear();
       directionMarkerLayer.getSource().clear();
       suravageProjectDirectionMarkerLayer.getSource().clear();
       suravageRoadProjectLayer.getSource().clear();
@@ -834,8 +836,10 @@
       me.toggleLayersVisibility(checkedBoxLayers, applicationModel.getRoadVisibility(), true);
       var marker;
       var cachedMarker = new ProjectLinkMarker(selectedProjectLinkProperty);
+      var cachedMarkerAn = new LinkPropertyMarker(selectedProjectLinkProperty);
 
       calibrationPointLayer.getSource().clear();
+      anomalousMarkerLayer.getSource().clear();
       suravageProjectDirectionMarkerLayer.getSource().clear();
       suravageRoadProjectLayer.getSource().clear();
       directionMarkerLayer.getSource().clear();
@@ -851,6 +855,10 @@
 
       var toBeTerminated = _.partition(editedLinks, function (link) {
         return link.status === LinkStatus.Terminated.value;
+      });
+
+      var anomalousRoadMarkers = _.filter(projectCollection.getAll(), function(link) {
+        return link.anomaly === Anomaly.NoAddressGiven.value;
       });
 
       var toBeTerminatedLinkIds = _.pluck(toBeTerminated[0], 'id');
@@ -877,6 +885,11 @@
           cachedMarker = new ProjectLinkMarker(selectedProjectLinkProperty);
       var suravageDirectionRoadMarker = _.filter(suravageProjectRoads, function (projectLink) {
         return projectLink.roadLinkType !== RoadLinkType.FloatingRoadLinkType.value && projectLink.anomaly !== Anomaly.NoAddressGiven.value && projectLink.anomaly !== Anomaly.GeometryChanged.value && (projectLink.sideCode === SideCode.AgainstDigitizing.value || projectLink.sideCode === SideCode.TowardsDigitizing.value);
+      });
+
+      _.each(anomalousRoadMarkers, function(anomalouslink) {
+        var marker = cachedMarkerAn.createMarker(anomalouslink);
+          anomalousMarkerLayer.getSource().addFeature(marker);
       });
 
       _.each(suravageDirectionRoadMarker, function (directionLink) {
@@ -1079,6 +1092,7 @@
     });
       var toggleProjectLayersVisibility = function (visibility, withRoadLayer) {
           vectorLayer.setVisible(visibility);
+          anomalousMarkerLayer.setVisible(visibility);
           suravageRoadProjectLayer.setVisible(visibility);
           calibrationPointLayer.setVisible(visibility);
           directionMarkerLayer.setVisible(visibility);
@@ -1089,6 +1103,7 @@
       };
       toggleProjectLayersVisibility(true);
     map.addLayer(vectorLayer);
+    map.addLayer(anomalousMarkerLayer);
     map.addLayer(suravageRoadProjectLayer);
     map.addLayer(calibrationPointLayer);
     map.addLayer(directionMarkerLayer);
