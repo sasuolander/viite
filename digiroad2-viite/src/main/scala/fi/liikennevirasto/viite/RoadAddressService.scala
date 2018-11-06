@@ -30,7 +30,6 @@ class RoadAddressService(roadLinkService: RoadLinkService, roadwayDAO: RoadwayDA
   def withDynSession[T](f: => T): T = OracleDatabase.withDynSession(f)
 
   private val logger = LoggerFactory.getLogger(getClass)
-
   /**
     * Smallest mvalue difference we can tolerate to be "equal to zero". One micrometer.
     * See https://en.wikipedia.org/wiki/Floating_point#Accuracy_problems
@@ -678,24 +677,22 @@ class RoadAddressService(roadLinkService: RoadLinkService, roadwayDAO: RoadwayDA
     * @return
     */
   def getUnaddressedRoadLink(roadNumberLimits: Seq[(Int, Int)], municipality: Int): Seq[UnaddressedRoadLink] = {
-    throw new NotImplementedError("Will be implemented at VIITE-1542")
-//    val (addresses, missedRL, roadLinks) =
-//      withDynTransaction {
-//        val roadLinks = roadLinkService.getCurrentAndComplementaryRoadLinksFromVVH(municipality, roadNumberLimits, frozenTimeVVHAPIServiceEnabled)
-//        val linkIds = roadLinks.map(_.linkId).toSet
-//        val addr = RoadAddressDAO.fetchByLinkId(linkIds).groupBy(_.linkId)
-//        val missingLinkIds = linkIds -- addr.keySet
-//        (addr, RoadAddressDAO.getUnaddressedRoadLinks(missingLinkIds).groupBy(_.linkId), roadLinks)
-//      }
-//    val viiteRoadLinks = roadLinks.map { rl =>
-//      val ra = addresses.getOrElse(rl.linkId, Seq())
-//      val missed = missedRL.getOrElse(rl.linkId, Seq())
-//      rl.linkId -> buildRoadAddressLink(rl, ra, missed)
-//    }.toMap
-//
-//    val (_, changeSet) = RoadAddressFiller.fillTopology(roadLinks, viiteRoadLinks)
-//
-//    changeSet.unaddressedRoadLinks
+    val (linearLoc, roadLinks) =
+      withDynTransaction {
+        val roadLinks = roadLinkService.getCurrentAndComplementaryRoadLinksFromVVH(municipality, roadNumberLimits)
+        val linkIds = roadLinks.map(_.linkId).toSet
+        val linearLocations = linearLocationDAO.fetchByLinkId(linkIds)
+        (linearLocations, roadLinks)
+      }
+
+    val roadAddresses = roadwayAddressMapper.getCurrentRoadAddressesByLinearLocation(linearLoc)
+    val roadAddressesMap = roadAddresses.groupBy(_.linkId)
+
+    roadLinks.flatMap {
+      roadLink =>
+      val segments = roadAddressesMap.getOrElse(roadLink.linkId, Seq.empty[RoadAddress])
+      RoadAddressFiller.generateUnaddressedRoadLinks(roadLink, segments)
+    }
   }
 
   //TODO this method is almost duplicated from buildRoadAddressLink if this method is needed in the future it should be refactored
