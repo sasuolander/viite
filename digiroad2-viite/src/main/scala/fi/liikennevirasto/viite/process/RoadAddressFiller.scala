@@ -211,12 +211,12 @@ object RoadAddressFiller {
     * @param roadAddresses
     * @return
     */
-  def generateUnaddressedSegments(roadLink: RoadLinkLike, roadAddresses: Seq[RoadAddress]): Seq[RoadAddressLink]  = {
+  def generateUnaddressedSegments(roadLink: RoadLinkLike, roadAddresses: Seq[RoadAddress]): Seq[RoadAddressLink] = {
     //TODO check if its needed to create unaddressed road link for part after VIITE-1536
     generateUnaddressedRoadLinks(roadLink, roadAddresses).map(RoadAddressLinkBuilder.build(roadLink, _))
   }
 
-  def generateUnaddressedRoadLinks(roadLink: RoadLinkLike, roadAddresses: Seq[RoadAddress]): Seq[UnaddressedRoadLink]  = {
+  def generateUnaddressedRoadLinks(roadLink: RoadLinkLike, roadAddresses: Seq[RoadAddress]): Seq[UnaddressedRoadLink] = {
     if (roadAddresses.isEmpty && roadLink.roadNumber.isDefined) {
       val anomaly = isPublicRoad(roadLink) match {
         case true => Anomaly.NoAddressGiven
@@ -230,7 +230,7 @@ object RoadAddressFiller {
     }
   }
 
-  private def generateSegments(topology: RoadLinkLike, roadAddresses: Seq[RoadAddress]): Seq[RoadAddressLink]  = {
+  private def generateSegments(topology: RoadLinkLike, roadAddresses: Seq[RoadAddress]): Seq[RoadAddressLink] = {
     roadAddresses.map(ra => RoadAddressLinkBuilder.build(topology, ra))
   }
 
