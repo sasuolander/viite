@@ -484,7 +484,7 @@ object DataFixture {
         importComplementaryRoadAddress()
       /*case Some("update_missing") if geometryFrozen =>
         showFreezeInfo()*/
-      case Some("update_missing") =>
+      case Some("update_unaddressed") =>
         updateUnaddressedRoadLink()
 //      case Some("fuse_multi_segment_road_addresses") =>
 //        combineMultipleSegmentsOnLinks()
