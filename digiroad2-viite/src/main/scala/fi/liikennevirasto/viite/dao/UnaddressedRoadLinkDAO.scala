@@ -59,22 +59,6 @@ class UnaddressedRoadLinkDAO extends BaseDAO {
     }
   }
 
-    /*def createUnaddressedRoadLink(mra: UnaddressedRoadLink): Unit = {
-      val (p1, p2) = (mra.geom.head, mra.geom.last)
-
-      sqlu"""
-             insert into UNADDRESSED_ROAD_LINK
-             (select ${mra.linkId}, ${mra.startAddrMValue}, ${mra.endAddrMValue},
-               ${mra.roadNumber}, ${mra.roadPartNumber}, ${mra.anomaly.value},
-               ${mra.startMValue}, ${mra.endMValue},
-               MDSYS.SDO_GEOMETRY(4002, 3067, NULL, MDSYS.SDO_ELEM_INFO_ARRAY(1,2,1),
-               MDSYS.SDO_ORDINATE_ARRAY(${p1.x},${p1.y},0.0,0.0,${p2.x},${p2.y},0.0,0.0))
-                FROM dual WHERE NOT EXISTS (SELECT * FROM UNADDRESSED_ROAD_LINK WHERE link_id = ${mra.linkId}) AND
-                NOT EXISTS (SELECT * FROM ROADWAY ra
-                  WHERE link_id = ${mra.linkId} AND valid_to IS NULL ))
-             """.execute
-    }*/
-
   def createUnaddressedRoadLink(mra: UnaddressedRoadLink): Unit = {
     val (p1, p2) = (mra.geom.head, mra.geom.last)
 
