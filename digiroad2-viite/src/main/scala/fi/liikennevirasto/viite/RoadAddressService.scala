@@ -28,7 +28,7 @@ class RoadAddressService(roadLinkService: RoadLinkService, roadwayDAO: RoadwayDA
   def withDynTransaction[T](f: => T): T = OracleDatabase.withDynTransaction(f)
 
   def withDynSession[T](f: => T): T = OracleDatabase.withDynSession(f)
-
+  val unaddressedRoadLinkDAO = new UnaddressedRoadLinkDAO
   private val logger = LoggerFactory.getLogger(getClass)
   /**
     * Smallest mvalue difference we can tolerate to be "equal to zero". One micrometer.
@@ -677,21 +677,18 @@ class RoadAddressService(roadLinkService: RoadLinkService, roadwayDAO: RoadwayDA
     * @return
     */
   def getUnaddressedRoadLink(roadNumberLimits: Seq[(Int, Int)], municipality: Int): Seq[UnaddressedRoadLink] = {
-    val (linearLoc, roadLinks) =
-      withDynTransaction {
-        val roadLinks = roadLinkService.getCurrentAndComplementaryRoadLinksFromVVH(municipality, roadNumberLimits)
-        val linkIds = roadLinks.map(_.linkId).toSet
-        val linearLocations = linearLocationDAO.fetchByLinkId(linkIds)
-        (linearLocations, roadLinks)
+    withDynTransaction {
+      val roadLinks = roadLinkService.getCurrentAndComplementaryRoadLinksFromVVH(municipality, roadNumberLimits)
+      val linkIds = roadLinks.map(_.linkId).toSet
+      val linearLocations = linearLocationDAO.fetchByLinkId(linkIds)
+      val roadAddresses = roadwayAddressMapper.getCurrentRoadAddressesByLinearLocation(linearLocations)
+      val roadAddressesMap = roadAddresses.groupBy(_.linkId)
+
+      roadLinks.flatMap {
+        roadLink =>
+        val segments = roadAddressesMap.getOrElse(roadLink.linkId, Seq.empty[RoadAddress])
+        RoadAddressFiller.generateUnaddressedRoadLinks(roadLink, segments)
       }
-
-    val roadAddresses = roadwayAddressMapper.getCurrentRoadAddressesByLinearLocation(linearLoc)
-    val roadAddressesMap = roadAddresses.groupBy(_.linkId)
-
-    roadLinks.flatMap {
-      roadLink =>
-      val segments = roadAddressesMap.getOrElse(roadLink.linkId, Seq.empty[RoadAddress])
-      RoadAddressFiller.generateUnaddressedRoadLinks(roadLink, segments)
     }
   }
 
@@ -744,8 +741,7 @@ class RoadAddressService(roadLinkService: RoadLinkService, roadwayDAO: RoadwayDA
   }
 
   private def createSingleUnaddressedRoadLink(unaddressedRoadLink: UnaddressedRoadLink): Unit = {
-    throw new NotImplementedError("Will be implemented at VIITE-1542 and VIITE-1538")
-//    RoadAddressDAO.createUnaddressedRoadLink(unaddressedRoadLink)
+    unaddressedRoadLinkDAO.createUnaddressedRoadLink(unaddressedRoadLink)
   }
 
   def mergeRoadAddress(data: RoadAddressMerge): Unit = {
