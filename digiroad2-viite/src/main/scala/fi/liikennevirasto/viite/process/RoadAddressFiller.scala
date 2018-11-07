@@ -217,6 +217,10 @@ object RoadAddressFiller {
   }
 
   def generateUnaddressedRoadLinks(roadLink: RoadLinkLike, roadAddresses: Seq[RoadAddress]): Seq[UnaddressedRoadLink] = {
+    generateUnaddressedByMissingLinkId(roadLink, roadAddresses)
+  }
+
+  def generateUnaddressedByMissingLinkId(roadLink: RoadLinkLike, roadAddresses: Seq[RoadAddress]): Seq[UnaddressedRoadLink] = {
     if (roadAddresses.isEmpty && roadLink.roadNumber.isDefined) {
       val anomaly = isPublicRoad(roadLink) match {
         case true => Anomaly.NoAddressGiven
