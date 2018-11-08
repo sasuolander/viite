@@ -84,9 +84,6 @@ class RoadAddressService(roadLinkService: RoadLinkService, roadwayDAO: RoadwayDA
 
     val allRoadLinks = roadLinks ++ complementaryRoadLinks ++ suravageRoadLinks
 
-    //TODO Will be implemented at VIITE-1542
-    //RoadAddressDAO.getUnaddressedRoadLinks(linkIds -- existingFloating.map(_.linkId).toSet -- allRoadAddressesAfterChangeTable.flatMap(_.allSegments).map(_.linkId).toSet)
-
     val (ad, changesChangeSet) = ApplyChangeInfoProcess.applyChanges(linearLocations, allRoadLinks, changeInfos)
 
     val (adjustedLinearLocations, changeSet) = RoadAddressFiller.adjustToTopology(
@@ -438,8 +435,6 @@ class RoadAddressService(roadLinkService: RoadLinkService, roadwayDAO: RoadwayDA
       }
 
       linearLocationDAO.create(changeSet.newLinearLocations.map(l => l.copy(id = NewLinearLocation)))
-
-      //TODO Implement the missing at user story VIITE-1596
     }
 
   }
@@ -501,15 +496,6 @@ class RoadAddressService(roadLinkService: RoadLinkService, roadwayDAO: RoadwayDA
     fusedRoadAddresses.map(ra => {
       RoadAddressLinkBuilder.build(rl, ra)
     })
-  }
-
-  private def fetchUnaddressedRoadLinksByBoundingBox(boundingRectangle: BoundingRectangle, fetchOnlyFloating: Boolean = false) = {
-    throw new NotImplementedError("Will be implemented at VIITE-1542")
-    //    withDynTransaction {
-    //      time(logger, "RoadAddressDAO.fetchUnaddressedRoadLinksByBoundingBox") {
-    //        RoadAddressDAO.fetchUnaddressedRoadLinksByBoundingBox(boundingRectangle).groupBy(_.linkId)
-    //      }
-    //    }
   }
 
 //  private def getSuravageRoadLinkAddresses(boundingRectangle: BoundingRectangle, boundingBoxResult: BoundingBoxResult): Seq[RoadAddressLink] = {

@@ -59,11 +59,6 @@ object RoadAddressFiller {
     }, geom))
   }
 
-  //TODO will be implemented at VIITE-1542
-  private def buildUnaddressedRoadLink(rl: RoadLinkLike, roadAddrSeq: Seq[UnaddressedRoadLink]): Seq[RoadAddressLink] = {
-    roadAddrSeq.map(mra => RoadAddressLinkBuilder.build(rl, mra))
-  }
-
 //  def fillTopology(roadLinks: Seq[RoadLinkLike], roadAddressMap: Map[Long, Seq[RoadAddressLink]]): (Seq[RoadAddressLink], AddressChangeSet) = {
 //    time(logger, "Fill topology") {
 //      val fillOperations: Seq[(RoadLinkLike, Seq[RoadAddressLink], AddressChangeSet) => (Seq[RoadAddressLink], AddressChangeSet)] = Seq(

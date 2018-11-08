@@ -812,24 +812,6 @@ class RoadwayDAOSpec extends FunSuite with Matchers {
   //    }
   //  }
 
-  //TODO will be implemented at VIITE-1542
-  //  test("Fetch unaddressed road links by boundingBox"){
-  //    runWithRollback {
-  //      val boundingBox = BoundingRectangle(Point(6699381, 396898), Point(6699382, 396898))
-  //      sqlu"""
-  //           insert into UNADDRESSED_ROAD_LINK (link_id, start_addr_m, end_addr_m,anomaly_code, start_m, end_m, geometry)
-  //           values (1943845, 0, 1, 1, 0, 34.944, MDSYS.SDO_GEOMETRY(4002, 3067, NULL, MDSYS.SDO_ELEM_INFO_ARRAY(1,2,1), MDSYS.SDO_ORDINATE_ARRAY(6699381,396898,0,0.0,6699382,396898,0,2)))
-  //           """.execute
-  //
-  //      val unaddressedRoadLinks = RoadAddressDAO.fetchUnaddressedRoadLinksByBoundingBox(boundingBox)
-  //      val addedValue = unaddressedRoadLinks.find(p => p.linkId == 1943845).get
-  //      addedValue should not be None
-  //      addedValue.geom.nonEmpty should be (true)
-  //      addedValue.startAddrMValue.get should be (0)
-  //      addedValue.endAddrMValue.get should be (1)
-  //    }
-  //  }
-
   //TODO will be implemented at VIITE-1537
   //  test("Set road address to floating and update the geometry as well") {
   //    runWithRollback {
@@ -850,26 +832,6 @@ class RoadwayDAOSpec extends FunSuite with Matchers {
   //      returning.head should be (id)
   //      val newSize = currentSize + 1
   //      RoadAddressDAO.fetchByRoadPart(ra.head.roadNumber, ra.head.roadPartNumber) should have size(newSize)
-  //    }
-  //  }
-
-  //TODO will be implemented at VIITE-1542
-  //  test("Adding geometry to unaddressed road link") {
-  //    runWithRollback {
-  //      val id = 1943845
-  //      sqlu"""
-  //           insert into UNADDRESSED_ROAD_LINK (link_id, start_addr_m, end_addr_m,anomaly_code, start_m)
-  //           values ($id, 0, 1, 1, 1)
-  //           """.execute
-  //      sqlu"""UPDATE UNADDRESSED_ROAD_LINK
-  //        SET geometry= MDSYS.SDO_GEOMETRY(4002, 3067, NULL, MDSYS.SDO_ELEM_INFO_ARRAY(1,2,1), MDSYS.SDO_ORDINATE_ARRAY(
-  //             6699381,396898,0,0.0,6699382,396898,0,2))
-  //        WHERE link_id = ${id}""".execute
-  //      val query= s"""select Count(geometry)
-  //                 from UNADDRESSED_ROAD_LINK ra
-  //                 WHERE ra.link_id=$id AND geometry IS NOT NULL
-  //      """
-  //      Q.queryNA[Int](query).firstOption should be (Some(1))
   //    }
   //  }
 
