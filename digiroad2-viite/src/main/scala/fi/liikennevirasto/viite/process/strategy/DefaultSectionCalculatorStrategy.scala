@@ -111,11 +111,7 @@ class DefaultSectionCalculatorStrategy extends RoadAddressSectionCalculatorStrat
 
       val direction = rightStartPoint - pl.oppositeEndPoint(rightStartPoint)
 
-      val possiblePoints = (rightStartPoint, leftPoints.filter(p => direction.dot(p._1 - p._2.oppositeEndPoint(p._1)) >= 0).minBy(p =>  p._1.distance2DTo(rightStartPoint))._1)
-
-      if (leftPoints.isEmpty)
-        throw new InvalidAddressDataException("Missing left track starting points")
-      possiblePoints
+      (rightStartPoint, leftPoints.filter(p => direction.dot(p._1 - p._2.oppositeEndPoint(p._1)) >= 0).minBy(p =>  p._1.distance2DTo(rightStartPoint))._1)
     }
   }
 
