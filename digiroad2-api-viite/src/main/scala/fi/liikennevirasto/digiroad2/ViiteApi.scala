@@ -175,6 +175,20 @@ class ViiteApi(val roadLinkService: RoadLinkService, val vVHClient: VVHClient,
           .map(midPoint)
           .getOrElse(Map("success" -> false, "reason" -> ("ID:" + id + " not found")))
     }
+
+  }
+
+  get("/roadlinks/project/prefillfromvvh") {
+    val linkId = params("linkId").toLong
+    val currentProjectId = params("currentProjectId").toLong
+    time(logger, s"GET request for /roadlinks/project/prefillfromvvh (linkId: $linkId, projectId: $currentProjectId)") {
+      projectService.fetchPreFillFromVVH(linkId, currentProjectId) match {
+        case Right(preFillInfo) => {
+          Map("success" -> true, "roadNumber" -> preFillInfo.RoadNumber, "roadPartNumber" -> preFillInfo.RoadPart, "roadName" -> preFillInfo.roadName, "roadNameSource" -> preFillInfo.roadNameSource.value)
+        }
+        case Left(failureMessage) => Map("success" -> false, "reason" -> failureMessage)
+      }
+    }
   }
 
   get("/roadlinks/adjacent") {
@@ -226,8 +240,8 @@ class ViiteApi(val roadLinkService: RoadLinkService, val vVHClient: VVHClient,
     val roadNumber = params("roadNumber").toLong
     time(logger, s"PUT request for /roadnames/$roadNumber") {
       val roadNames = parsedBody.extract[Seq[RoadNameRow]]
-      val user = userProvider.getCurrentUser()
-      roadNameService.addOrUpdateRoadNames(roadNumber, roadNames, user) match {
+      val username = userProvider.getCurrentUser().username
+      roadNameService.addOrUpdateRoadNames(roadNumber, roadNames, username) match {
         case Some(err) => Map("success" -> false, "errorMessage" -> err)
         case None => Map("success" -> true)
       }
@@ -300,17 +314,6 @@ class ViiteApi(val roadLinkService: RoadLinkService, val vVHClient: VVHClient,
       foldSegments(projectLinks)
         .map(midPoint)
         .getOrElse(Map("success" -> false, "reason" -> ("Link " + linkId + " not found")))
-    }
-  }
-
-  //TODO this is a project entry point
-  get("/roadlinks/project/prefillfromvvh/:linkId") {
-    val linkId = params("linkId").toLong
-    time(logger, s"GET request for /roadlinks/project/prefillfromvvh/$linkId") {
-      projectService.fetchPreFillFromVVH(linkId) match {
-        case Right(preFillInfo) => Map("success" -> true, "roadNumber" -> preFillInfo.RoadNumber, "roadPartNumber" -> preFillInfo.RoadPart, "roadName" -> preFillInfo.roadName)
-        case Left(failureMessage) => Map("success" -> false, "reason" -> failureMessage)
-      }
     }
   }
 
@@ -415,7 +418,7 @@ class ViiteApi(val roadLinkService: RoadLinkService, val vVHClient: VVHClient,
           Map("sendSuccess" -> true)
         else if (sendStatus.errorMessage.getOrElse("").toLowerCase == failedToSendToTRMessage.toLowerCase) {
           projectService.setProjectStatus(projectID, SendingToTR)
-          Map("sendSuccess" -> false, "errorMessage" -> sendStatus.errorMessage.getOrElse(""))
+          Map("sendSuccess" -> false, "errorMessage" -> trConnectionError)
         } else Map("sendSuccess" -> false, "errorMessage" -> sendStatus.errorMessage.getOrElse(""))
       }
       else{
@@ -528,7 +531,9 @@ class ViiteApi(val roadLinkService: RoadLinkService, val vVHClient: VVHClient,
         val links = parsedBody.extract[RoadAddressProjectLinksExtractor]
         logger.debug(s"Creating new links: ${links.linkIds.mkString(",")}")
         val response = projectService.createProjectLinks(links.linkIds, links.projectId, links.roadNumber, links.roadPartNumber,
-          Track.apply(links.trackCode), Discontinuity.apply(links.discontinuity), RoadType.apply(links.roadType), LinkGeomSource.apply(links.roadLinkSource), links.roadEly, user.username, links.roadName.getOrElse(halt(BadRequest("Road name is mandatory"))))
+          Track.apply(links.trackCode), Discontinuity.apply(links.discontinuity), RoadType.apply(links.roadType),
+          LinkGeomSource.apply(links.roadLinkSource), links.roadEly, user.username, links.roadName.getOrElse(halt(BadRequest("Road name is mandatory"))),
+          Some(links.coordinates))
         response.get("success") match {
           case Some(true) => {
             val projectErrors = response.getOrElse("projectErrors", Seq).asInstanceOf[Seq[projectService.projectValidator.ValidationErrorDetails]].map(errorPartsToApi)
@@ -559,7 +564,8 @@ class ViiteApi(val roadLinkService: RoadLinkService, val vVHClient: VVHClient,
         if (projectService.validateLinkTrack(links.trackCode)) {
           projectService.updateProjectLinks(links.projectId, links.ids, links.linkIds, LinkStatus.apply(links.linkStatus),
             user.username, links.roadNumber, links.roadPartNumber, links.trackCode, links.userDefinedEndAddressM,
-            links.roadType, links.discontinuity, Some(links.roadEly), links.reversed.getOrElse(false), roadName = links.roadName) match {
+            links.roadType, links.discontinuity, Some(links.roadEly), links.reversed.getOrElse(false), roadName = links.roadName,
+            Some(links.coordinates)) match {
             case Some(errorMessage) => Map("success" -> false, "errorMessage" -> errorMessage)
             case None =>
               val projectErrors = projectService.validateProjectById(links.projectId).map(errorPartsToApi)
@@ -568,7 +574,7 @@ class ViiteApi(val roadLinkService: RoadLinkService, val vVHClient: VVHClient,
                 "projectErrors" -> projectErrors)
           }
         } else {
-          Map("success" -> false, "errorMessage" -> "Invalid track code")
+          Map("success" -> false, "errorMessage" -> "Ajoratakoodi puuttuu")
         }
       } catch {
         case e: IllegalStateException => Map("success" -> false, "errorMessage" -> "Projekti ei ole enää muokattavissa")
@@ -777,11 +783,11 @@ class ViiteApi(val roadLinkService: RoadLinkService, val vVHClient: VVHClient,
     time(logger, s"GET request for api/viite/roadlinks/roadaddress/$roadNumber/$roadPartNumber") {
       (roadNumber, roadPartNumber,addrMValue) match {
         case (Some(road), Some(part), None) =>
-         roadAddressService.getRoadAddressWithRoadNumberParts(road, Set(part), Set(Track.Combined, Track.LeftSide, Track.RightSide))
+         roadAddressService.getRoadAddressWithRoadNumberParts(road, Set(part), Set(Track.Combined, Track.LeftSide, Track.RightSide)).sortBy(address => (address.roadPartNumber, address.startAddrMValue))
         case (Some(road), Some(part), Some(addrM)) =>
-          roadAddressService.getRoadAddress(road, part, addrM, None)
+          roadAddressService.getRoadAddress(road, part, addrM, None).sortBy(address => (address.roadPartNumber, address.startAddrMValue))
         case (Some(road), _, _) =>
-          roadAddressService.getRoadAddressWithRoadNumberAddress(road, addrMValue)
+          roadAddressService.getRoadAddressWithRoadNumberAddress(road).sortBy(address => (address.roadPartNumber, address.startAddrMValue))
         case _ => BadRequest("Missing road number from URL")
       }
     }

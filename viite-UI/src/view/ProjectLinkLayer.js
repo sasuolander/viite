@@ -79,7 +79,7 @@
       zIndex: RoadZIndex.VectorLayer.value
     });
 
-    var layers = [projectLinkLayer, calibrationPointLayer, directionMarkerLayer];
+    var layers = [projectLinkLayer, calibrationPointLayer, directionMarkerLayer, suravageRoadProjectLayer, suravageProjectDirectionMarkerLayer];
 
     var getSelectedId = function (selected) {
       if (!_.isUndefined(selected.id) && selected.id > 0) {
@@ -187,7 +187,7 @@
     };
 
     var selectDoubleClick = new ol.interaction.Select({
-      layer: [projectLinkLayer],
+      layer: [projectLinkLayer, suravageRoadProjectLayer],
       condition: ol.events.condition.doubleClick,
       style: function(feature) {
           if (projectLinkStatusIn(feature.linkData, possibleStatusForSelection) || feature.linkData.roadClass === RoadClass.NoClass.value) {
@@ -521,7 +521,8 @@
       };
 
       var clickHandler = function (evt) {
-        if (applicationModel.getSelectedTool() === 'Cut') {
+
+        if (applicationModel.getSelectedTool() === 'Cut' && suravageLayer.getVisible()) {
           $('.wrapper').remove();
           removeCutterMarkers();
           self.cut(evt);
@@ -569,7 +570,7 @@
         if (!closestSuravageLink) {
           return;
         }
-        if (isWithinCutThreshold(closestSuravageLink.distance)) {
+        if (suravageRoadProjectLayer.getVisible() && isWithinCutThreshold(closestSuravageLink.distance)) {
           moveTo(closestSuravageLink.point[0], closestSuravageLink.point[1]);
         } else {
           removeFeaturesByType('cutter-crosshair');
@@ -731,7 +732,7 @@
         var addMarkersToLayer = function(links, layer) {
           var directionMarkers = _.filter(links, function (projectLink) {
               var acceptedLinks = projectLink.id !== 0 || (projectLink.id === 0 && (projectLink.anomaly === Anomaly.NoAddressGiven.value || projectLink.roadLinkType === RoadLinkType.FloatingRoadLinkType.value));
-              return acceptedLinks && projectLink.sideCode !== SideCode.Unknown.value;
+              return acceptedLinks && projectLink.sideCode !== SideCode.Unknown.value && projectLink.endAddressM !== 0;
           });
           _.each(directionMarkers, function (directionLink) {
             marker = cachedMarker.createProjectMarker(directionLink);

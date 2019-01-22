@@ -209,9 +209,12 @@
         var openLayerStyleClassConfigs = [
             {
                 name: 'stroke',
-                factory: function(settings){
-                    if(settings.color)
+                factory: function(settings) {
+                    if (settings.color)
                         settings.color = mergeColorOpacity(settings.color, settings.opacity);
+                    if (!settings.lineCap) {
+                        settings.lineCap = 'round';
+                    }
 
                     return {
                         stroke: new ol.style.Stroke(settings)
