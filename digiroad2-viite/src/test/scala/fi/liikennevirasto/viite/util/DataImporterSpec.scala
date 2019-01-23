@@ -223,7 +223,7 @@ class DataImporterSpec extends FunSuite with Matchers {
       when(mockVVHFrozenTimeRoadLinkClient.fetchByLinkIds(any[Set[Long]])).thenReturn(Seq.empty)
 
 
-      dataImporter.updateLinearLocationGeometry(mockVVHClient, withSession = false)
+      dataImporter.updateLinearLocationGeometry(mockVVHClient, withSession = true)
 
       val updatedLinearLocation = linearLocationDAO.fetchById(linearLocationId)
       updatedLinearLocation.isDefined should be (true)

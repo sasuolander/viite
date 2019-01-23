@@ -298,15 +298,18 @@ class DataImporter {
       changed
     }
 
-
-   val changed = withLinkIdChunks {
+    println(s"-------------------I am gonna open withSession: $withSession")
+   withLinkIdChunks {
       case (min, max) =>
-        if(withSession) withDynTransaction {
-            fetchAndUpdate(min, max)
+        if(withSession) withDynSession {
+            val changed = fetchAndUpdate(min, max)
+          println(s"Geometries changed count: $changed")
           }
-        else fetchAndUpdate(min, max)
+        else {
+          val changed = fetchAndUpdate(min, max)
+          println(s"Geometries changed count: $changed")
+        }
     }
-    println(s"Geometries changed count: $changed")
   }
 
   /**
