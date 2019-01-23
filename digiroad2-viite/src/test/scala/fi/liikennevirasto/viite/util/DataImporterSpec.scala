@@ -13,6 +13,7 @@ import slick.driver.JdbcDriver.backend.Database
 import Database.dynamicSession
 import fi.liikennevirasto.digiroad2.oracle.OracleDatabase
 import fi.liikennevirasto.digiroad2.service.RoadLinkService
+import fi.liikennevirasto.viite.RoadAddressService
 import org.joda.time.DateTime
 import org.mockito.ArgumentMatchers.any
 import slick.driver.JdbcDriver.backend.DatabaseDef
@@ -38,6 +39,7 @@ class DataImporterSpec extends FunSuite with Matchers {
   val mockVVHHistoryClient = MockitoSugar.mock[VVHHistoryClient]
   val mockVVHFrozenTimeRoadLinkClient = MockitoSugar.mock[VVHFrozenTimeRoadLinkClientServicePoint]
   val mockRoadLinkService = MockitoSugar.mock[RoadLinkService]
+  val mockRoadAddressService = MockitoSugar.mock[RoadAddressService]
 
   val dateTimeFormatter = DateTimeFormat.forPattern("dd.MM.yyyy")
 
@@ -222,8 +224,10 @@ class DataImporterSpec extends FunSuite with Matchers {
       when(mockVVHComplementaryClient.fetchByLinkIds(any[Set[Long]])).thenReturn(Seq.empty)
       when(mockVVHFrozenTimeRoadLinkClient.fetchByLinkIds(any[Set[Long]])).thenReturn(Seq.empty)
 
+      when(mockRoadAddressService.getLinkIdsInChunkWithTX(any[Long], any[Long], any[Boolean])).thenReturn(List(originalLinearLocations.linkId))
+      when(mockRoadAddressService.getLinearLocationsByLinkId(any[Set[Long]], any[Boolean], any[Set[Long]], any[Boolean])).thenReturn(List(originalLinearLocations))
 
-      dataImporter.updateLinearLocationGeometry(mockVVHClient, withSession = false)
+      dataImporter.updateLinearLocationGeometry(mockVVHClient, withSession = false, roadAddressService = Some(mockRoadAddressService))
 
       val updatedLinearLocation = linearLocationDAO.fetchById(linearLocationId)
       updatedLinearLocation.isDefined should be (true)

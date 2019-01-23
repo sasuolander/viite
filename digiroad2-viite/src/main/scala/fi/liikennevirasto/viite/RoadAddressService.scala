@@ -1090,7 +1090,26 @@ class RoadAddressService(roadLinkService: RoadLinkService, roadwayDAO: RoadwayDA
 //    if (!hasFloatings)
 //      eventbus.publish("roadAddress:RoadNetworkChecker", RoadCheckOptions(Seq()))
   }
+
+  def getLinkIdsInChunkWithTX(min: Long, max: Long, withSession: Boolean = false): List[Long] = {
+    if(withSession) {
+      withDynSession {
+        linearLocationDAO.fetchLinkIdsInChunk(min, max)
+      }
+    } else linearLocationDAO.fetchLinkIdsInChunk(min, max)
+  }
+
+  def getLinearLocationsByLinkId (linkIds: Set[Long], includeFloating: Boolean = false, filterIds: Set[Long] = Set(), withSession: Boolean = false): List[LinearLocation] = {
+    if (withSession) {
+      withDynSession {
+        linearLocationDAO.fetchByLinkId(linkIds, includeFloating, filterIds)
+      }
+    }
+    else linearLocationDAO.fetchByLinkId(linkIds, includeFloating, filterIds)
+  }
 }
+
+
 
 sealed trait RoadClass {
   def value: Int

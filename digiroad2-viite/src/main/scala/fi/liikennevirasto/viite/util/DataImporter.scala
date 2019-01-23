@@ -261,16 +261,21 @@ class DataImporter {
     }
 
 
-  def updateLinearLocationGeometry(vvhClient: VVHClient, customFilter: String = "", withSession: Boolean = true): Unit = {
+  def updateLinearLocationGeometry(vvhClient: VVHClient, customFilter: String = "", withSession: Boolean = true, roadAddressService: Option[RoadAddressService] = Option.empty): Unit = {
     val eventBus = new DummyEventBus
-    val linearLocationDAO = new LinearLocationDAO
     val linkService = new RoadLinkService(vvhClient, eventBus, new DummySerializer)
+    val roadwayDAO = new RoadwayDAO
+    val linearLocationDAO = new LinearLocationDAO
+    val roadNetworkDAO: RoadNetworkDAO = new RoadNetworkDAO
 
     def fetchAndUpdate(min: Long, max: Long): Int = {
       var changed = 0
-      val linkIds = linearLocationDAO.fetchLinkIdsInChunk(min, max).toSet
+      val service = if(withSession){
+        new RoadAddressService(linkService, roadwayDAO, linearLocationDAO, roadNetworkDAO, new UnaddressedRoadLinkDAO, new RoadwayAddressMapper(roadwayDAO, linearLocationDAO), eventBus)
+      } else roadAddressService.get
+      val linkIds = service.getLinkIdsInChunkWithTX(min, max).toSet
       val roadLinksFromVVH = linkService.getCurrentAndComplementaryAndSuravageRoadLinksFromVVH(linkIds)
-      val unGroupedTopology = linearLocationDAO.fetchByLinkId(roadLinksFromVVH.map(_.linkId).toSet, false)
+      val unGroupedTopology = service.getLinearLocationsByLinkId(roadLinksFromVVH.map(_.linkId).toSet, false)
       val topologyLocation = unGroupedTopology.groupBy(_.linkId)
       roadLinksFromVVH.foreach(roadLink => {
         val segmentsOnViiteDatabase = topologyLocation.getOrElse(roadLink.linkId, Set())
@@ -298,7 +303,6 @@ class DataImporter {
       changed
     }
 
-    println(s"-------------------I am gonna open withSession: $withSession")
    withLinkIdChunks {
       case (min, max) =>
         if(withSession) withDynSession {
