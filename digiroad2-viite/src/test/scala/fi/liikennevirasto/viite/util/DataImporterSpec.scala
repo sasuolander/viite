@@ -1,6 +1,6 @@
 package fi.liikennevirasto.viite.util
 
-import fi.liikennevirasto.digiroad2.Point
+import fi.liikennevirasto.digiroad2.{GeometryUtils, Point}
 import fi.liikennevirasto.digiroad2.asset.SideCode.Unknown
 import fi.liikennevirasto.digiroad2.asset._
 import fi.liikennevirasto.digiroad2.client.vvh._
@@ -192,6 +192,40 @@ class DataImporterSpec extends FunSuite with Matchers {
     }
     withDynSession {
       sqlu"""ALTER TABLE ROADWAY ENABLE ALL TRIGGERS""".execute
+    }
+  }
+
+  test("Test updateLinearLocationGeometry When trying to deal with a long geometry Then said geometry should be saved \"in steps \".") {
+    runWithRollback {
+      val roadwayNumber = 123
+      val linkId = 12345L
+      val linearLocationId = sql"""Select LINEAR_LOCATION_SEQ.nextval FROM dual""".as[Long].firstOption.get
+      sqlu"""DELETE FROM LINEAR_LOCATION""".execute
+      sqlu"""INSERT INTO LINEAR_LOCATION (ID,ROADWAY_NUMBER,ORDER_NUMBER,LINK_ID,START_MEASURE,END_MEASURE,SIDE,CAL_START_ADDR_M,CAL_END_ADDR_M,LINK_SOURCE,ADJUSTED_TIMESTAMP,FLOATING,GEOMETRY,VALID_FROM,VALID_TO,CREATED_BY,CREATE_TIME)
+            VALUES($linearLocationId, $roadwayNumber, 1, $linkId, 0, 9, 2, NULL, NULL, 1, 1510876800000, 0, MDSYS.SDO_GEOMETRY(4002, 3067, NULL, MDSYS.SDO_ELEM_INFO_ARRAY(1, 2, 1), MDSYS.SDO_ORDINATE_ARRAY(5.0, 0.0, 0, 0, 5.0, 9.0, 0, 9)), TIMESTAMP '2015-12-30 00:00:00.000000', NULL, 'TR', TIMESTAMP '2015-12-30 00:00:00.000000')""".execute
+      val hugeGeom = (0.0 to 1000.0 by 10.0).map(t => {
+        Point(t, t)
+      })
+      val vvhTestRoadLink = Seq(
+        VVHRoadlink(linkId, 91, hugeGeom, Municipality, TrafficDirection.BothDirections, FeatureClass.AllOthers)
+      )
+
+      when(mockVVHClient.complementaryData).thenReturn(mockVVHComplementaryClient)
+      when(mockVVHClient.roadLinkData).thenReturn(mockVVHRoadLinkClient)
+      when(mockVVHClient.suravageData).thenReturn(mockVVHSuravageClient)
+      when(mockVVHClient.historyData).thenReturn(mockVVHHistoryClient)
+      when(mockVVHClient.frozenTimeRoadLinkData)thenReturn(mockVVHFrozenTimeRoadLinkClient)
+      when(mockVVHRoadLinkClient.fetchByLinkIds(any[Set[Long]])).thenReturn(vvhTestRoadLink)
+      when(mockVVHComplementaryClient.fetchByLinkIds(any[Set[Long]])).thenReturn(Seq.empty)
+      when(mockVVHFrozenTimeRoadLinkClient.fetchByLinkIds(any[Set[Long]])).thenReturn(Seq.empty)
+
+
+      dataImporter.updateLinearLocationGeometry(mockVVHClient)
+
+      val updatedLinearLocation = linearLocationDAO.fetchById(linearLocationId)
+      updatedLinearLocation.isDefined should be (true)
+      updatedLinearLocation.get.id should be (linearLocationId)
+      updatedLinearLocation.get.geometry should be (GeometryUtils.geometryReduction(hugeGeom))
     }
   }
 

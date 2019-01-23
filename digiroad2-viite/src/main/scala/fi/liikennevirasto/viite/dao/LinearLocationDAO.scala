@@ -218,7 +218,7 @@ class LinearLocationDAO {
           location.roadwayNumber
         }
 
-        val reducedGeom = if (GeometryUtils.geometryLength(location.geometry) > GeometryUtils.DefaultStepLength) {
+        val reducedGeom = if (GeometryUtils.geometryIsReducible(location.geometry)) {
           GeometryUtils.geometryReduction(location.geometry)
         } else {
           location.geometry

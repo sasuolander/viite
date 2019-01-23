@@ -285,8 +285,9 @@ class DataImporter {
               if (((distanceFromHeadToHead > MinDistanceForGeometryUpdate) &&
                 (distanceFromHeadToLast > MinDistanceForGeometryUpdate)) ||
                 ((distanceFromLastToHead > MinDistanceForGeometryUpdate) &&
-                  (distanceFromLastToLast > MinDistanceForGeometryUpdate))) {
-                updateGeometry(segment.id, newGeom)
+                (distanceFromLastToLast > MinDistanceForGeometryUpdate)) ||
+                GeometryUtils.geometryIsReducible(newGeom)) {
+                updateGeometry(segment.id, newGeom, roadLink.geometry, segment.startMValue)
                 println("Changed geometry on linear location id " + segment.id + " and linkId =" + segment.linkId)
                 changed += 1
               } else {
@@ -300,23 +301,45 @@ class DataImporter {
     println(s"Geometries changed count: $changed")
   }
 
-  def updateGeometry(linearLocationId: Long, geometry: Seq[Point]): Unit = {
-    if (geometry.nonEmpty) {
-      val first = geometry.head
-      val last = geometry.last
-      val (x1, y1, z1, x2, y2, z2) = (
-        GeometryUtils.scaleToThreeDigits(first.x),
-        GeometryUtils.scaleToThreeDigits(first.y),
-        GeometryUtils.scaleToThreeDigits(first.z),
-        GeometryUtils.scaleToThreeDigits(last.x),
-        GeometryUtils.scaleToThreeDigits(last.y),
-        GeometryUtils.scaleToThreeDigits(last.z)
-      )
-      val length = GeometryUtils.geometryLength(geometry)
-      sqlu"""UPDATE LINEAR_LOCATION
-          SET geometry = MDSYS.SDO_GEOMETRY(4002, 3067, NULL, MDSYS.SDO_ELEM_INFO_ARRAY(1, 2, 1),
-               MDSYS.SDO_ORDINATE_ARRAY($x1, $y1, $z1, 0.0, $x2, $y2, $z2, $length))
+  /**
+    * This method is responsible of updating the geometry of a linear location.
+    * @param linearLocationId
+    * @param segmentGeometry
+    * @param roadLinkGeometry
+    * @param startM
+    */
+  def updateGeometry(linearLocationId: Long, segmentGeometry: Seq[Point], roadLinkGeometry: Seq[Point], startM: Double): Unit = {
+
+    val segmentGeometryLength = GeometryUtils.geometryLength(segmentGeometry)
+    if (segmentGeometry.nonEmpty) {
+      if(GeometryUtils.geometryIsReducible(segmentGeometry) || GeometryUtils.geometryIsReducible(roadLinkGeometry)) {
+
+        val reducedGeom = GeometryUtils.geometryReduction(roadLinkGeometry)
+        val reducedGeometryLength = GeometryUtils.geometryLength(reducedGeom)
+        val reducedGeomStruct = OracleDatabase.createRoadsJGeometry(reducedGeom, dynamicSession.conn, reducedGeometryLength)
+
+        sqlu"""UPDATE LINEAR_LOCATION
+          SET geometry = $reducedGeomStruct
           WHERE id = ${linearLocationId}""".execute
+
+      } else {
+
+        val first = segmentGeometry.head
+        val last = segmentGeometry.last
+        val (x1, y1, z1, x2, y2, z2) = (
+          GeometryUtils.scaleToThreeDigits(first.x),
+          GeometryUtils.scaleToThreeDigits(first.y),
+          GeometryUtils.scaleToThreeDigits(first.z),
+          GeometryUtils.scaleToThreeDigits(last.x),
+          GeometryUtils.scaleToThreeDigits(last.y),
+          GeometryUtils.scaleToThreeDigits(last.z)
+        )
+        sqlu"""UPDATE LINEAR_LOCATION
+          SET geometry = MDSYS.SDO_GEOMETRY(4002, 3067, NULL, MDSYS.SDO_ELEM_INFO_ARRAY(1, 2, 1),
+               MDSYS.SDO_ORDINATE_ARRAY($x1, $y1, $z1, 0.0, $x2, $y2, $z2, $segmentGeometryLength))
+          WHERE id = ${linearLocationId}""".execute
+
+      }
     }
   }
 

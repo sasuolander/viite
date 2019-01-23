@@ -40,6 +40,15 @@ object GeometryUtils {
     BigDecimal(n).setScale(3, BigDecimal.RoundingMode.HALF_UP).toDouble
   }
 
+  /**
+    * Evaluates whether or not a given geometry is reducible by comparing it's length to the DefaultStepLength
+    * @param geom: Seq[Point] - The given geometry
+    * @return
+    */
+  def geometryIsReducible(geom: Seq[Point]): Boolean = {
+    geometryLength(geom) >= DefaultStepLength
+  }
+
 
   def createStepGeometry(originalGeometry: Seq[Point], processedGeometry: Seq[Point] = Seq.empty[Point], startMeasure: Double, maxLength: Double, step: Double = DefaultStepLength): Seq[Point] = {
     if(geometryLength(originalGeometry) <= DefaultStepLength) {
@@ -531,29 +540,35 @@ object GeometryUtils {
     */
   def geometryReduction(geometry: Seq[Point] = Seq.empty[Point]): Seq[Point] = {
 
-   def reduce(geom: Seq[Point]) = {
-     /*
+    def reduce(geom: Seq[Point]) = {
+      /*
    So far this serves our purpose but if we need to come up with a probably faster alternative for huge geometries there is a O(log n) version called the Douglas-Peucker algorithm or the Convex Hull Speed-Up
    variation to the same.
     For more information: http://geomalgorithms.com/a16-_decimate-1.html
    */
 
-     var vStart = geom.head
-     var reducedGeom = Seq(vStart)
+      var vStart = geom.head
+      var reducedGeom = Seq(vStart)
 
-     geom.tail.foreach(p => {
-       val distance = p.distance3DTo(vStart)
-       if (distance > DefaultStepLength) {
-         reducedGeom = reducedGeom ++  Seq(p)
-         vStart = p
-       }
-     })
-     reducedGeom
-   }
+      geom.tail.foreach(p => {
+        val distance = p.distance3DTo(vStart)
+        if (distance > DefaultStepLength) {
+          reducedGeom = reducedGeom ++ Seq(p)
+          vStart = p
+        }
+      })
+      reducedGeom
+    }
 
-    if(geometryLength(geometry) >= DefaultStepLength) {
+    val reducedGeom = if (geometryLength(geometry) >= DefaultStepLength) {
       reduce(geometry)
     } else geometry
+
+    if (reducedGeom.contains(geometry.last)) {
+      reducedGeom
+    } else {
+      reducedGeom ++ Seq(geometry.last)
+    }
   }
 
 }
