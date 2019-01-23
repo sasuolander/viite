@@ -204,6 +204,8 @@ class DataImporterSpec extends FunSuite with Matchers {
       sqlu"""DELETE FROM LINEAR_LOCATION""".execute
       sqlu"""INSERT INTO LINEAR_LOCATION (ID,ROADWAY_NUMBER,ORDER_NUMBER,LINK_ID,START_MEASURE,END_MEASURE,SIDE,CAL_START_ADDR_M,CAL_END_ADDR_M,LINK_SOURCE,ADJUSTED_TIMESTAMP,FLOATING,GEOMETRY,VALID_FROM,VALID_TO,CREATED_BY,CREATE_TIME)
             VALUES($linearLocationId, $roadwayNumber, 1, $linkId, 0, 9, 2, NULL, NULL, 1, 1510876800000, 0, MDSYS.SDO_GEOMETRY(4002, 3067, NULL, MDSYS.SDO_ELEM_INFO_ARRAY(1, 2, 1), MDSYS.SDO_ORDINATE_ARRAY(5.0, 0.0, 0, 0, 5.0, 9.0, 0, 9)), TIMESTAMP '2015-12-30 00:00:00.000000', NULL, 'TR', TIMESTAMP '2015-12-30 00:00:00.000000')""".execute
+
+      val originalLinearLocations = linearLocationDAO.fetchById(linearLocationId).get
       val hugeGeom = (0.0 to 1000.0 by 10.0).map(t => {
         Point(t, t)
       })
@@ -221,7 +223,7 @@ class DataImporterSpec extends FunSuite with Matchers {
       when(mockVVHFrozenTimeRoadLinkClient.fetchByLinkIds(any[Set[Long]])).thenReturn(Seq.empty)
 
 
-      dataImporter.updateLinearLocationGeometry(mockVVHClient, withSession = true)
+      dataImporter.updateLinearLocationGeometry(mockVVHClient, withSession = false)
 
       val updatedLinearLocation = linearLocationDAO.fetchById(linearLocationId)
       updatedLinearLocation.isDefined should be (true)

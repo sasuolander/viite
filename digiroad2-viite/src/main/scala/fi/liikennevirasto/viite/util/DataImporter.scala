@@ -261,43 +261,50 @@ class DataImporter {
     }
 
 
-  def updateLinearLocationGeometry(vvhClient: VVHClient, customFilter: String = "", withSession: Boolean = false): Unit = {
+  def updateLinearLocationGeometry(vvhClient: VVHClient, customFilter: String = "", withSession: Boolean = true): Unit = {
     val eventBus = new DummyEventBus
     val linearLocationDAO = new LinearLocationDAO
     val linkService = new RoadLinkService(vvhClient, eventBus, new DummySerializer)
-    var changed = 0
-    withLinkIdChunks {
-      case (min, max) =>
-        withDynTransaction {
-        val linkIds = linearLocationDAO.fetchLinkIdsInChunkWithTX(min, max, withSession).toSet
 
-        val roadLinksFromVVH = linkService.getCurrentAndComplementaryAndSuravageRoadLinksFromVVH(linkIds)
-        val unGroupedTopology = linearLocationDAO.fetchByLinkIdWithTX(roadLinksFromVVH.map(_.linkId).toSet, false, withSession = withSession)
-        val topologyLocation = unGroupedTopology.groupBy(_.linkId)
-        roadLinksFromVVH.foreach(roadLink => {
-          val segmentsOnViiteDatabase = topologyLocation.getOrElse(roadLink.linkId, Set())
-          segmentsOnViiteDatabase.foreach(segment => {
-            val newGeom = GeometryUtils.truncateGeometry3D(roadLink.geometry, segment.startMValue, segment.endMValue)
-            if (!segment.geometry.equals(Nil) && !newGeom.equals(Nil)) {
-              val distanceFromHeadToHead = segment.geometry.head.distance2DTo(newGeom.head)
-              val distanceFromHeadToLast = segment.geometry.head.distance2DTo(newGeom.last)
-              val distanceFromLastToHead = segment.geometry.last.distance2DTo(newGeom.head)
-              val distanceFromLastToLast = segment.geometry.last.distance2DTo(newGeom.last)
-              if (((distanceFromHeadToHead > MinDistanceForGeometryUpdate) &&
-                (distanceFromHeadToLast > MinDistanceForGeometryUpdate)) ||
-                ((distanceFromLastToHead > MinDistanceForGeometryUpdate) &&
+    def fetchAndUpdate(min: Long, max: Long): Int = {
+      var changed = 0
+      val linkIds = linearLocationDAO.fetchLinkIdsInChunk(min, max).toSet
+      val roadLinksFromVVH = linkService.getCurrentAndComplementaryAndSuravageRoadLinksFromVVH(linkIds)
+      val unGroupedTopology = linearLocationDAO.fetchByLinkId(roadLinksFromVVH.map(_.linkId).toSet, false)
+      val topologyLocation = unGroupedTopology.groupBy(_.linkId)
+      roadLinksFromVVH.foreach(roadLink => {
+        val segmentsOnViiteDatabase = topologyLocation.getOrElse(roadLink.linkId, Set())
+        segmentsOnViiteDatabase.foreach(segment => {
+          val newGeom = GeometryUtils.truncateGeometry3D(roadLink.geometry, segment.startMValue, segment.endMValue)
+          if (!segment.geometry.equals(Nil) && !newGeom.equals(Nil)) {
+            val distanceFromHeadToHead = segment.geometry.head.distance2DTo(newGeom.head)
+            val distanceFromHeadToLast = segment.geometry.head.distance2DTo(newGeom.last)
+            val distanceFromLastToHead = segment.geometry.last.distance2DTo(newGeom.head)
+            val distanceFromLastToLast = segment.geometry.last.distance2DTo(newGeom.last)
+            if (((distanceFromHeadToHead > MinDistanceForGeometryUpdate) &&
+              (distanceFromHeadToLast > MinDistanceForGeometryUpdate)) ||
+              ((distanceFromLastToHead > MinDistanceForGeometryUpdate) &&
                 (distanceFromLastToLast > MinDistanceForGeometryUpdate)) ||
-                GeometryUtils.geometryIsReducible(newGeom)) {
-                updateGeometry(segment.id, newGeom, roadLink.geometry, segment.startMValue)
-                println("Changed geometry on linear location id " + segment.id + " and linkId =" + segment.linkId)
-                changed += 1
-              } else {
-                println(s"Skipped geometry update on linear location ID : ${segment.id} and linkId: ${segment.linkId}")
-              }
+              GeometryUtils.geometryIsReducible(newGeom)) {
+              updateGeometry(segment.id, newGeom, roadLink.geometry, segment.startMValue)
+              println("Changed geometry on linear location id " + segment.id + " and linkId =" + segment.linkId)
+              changed += 1
+            } else {
+              println(s"Skipped geometry update on linear location ID : ${segment.id} and linkId: ${segment.linkId}")
             }
-          })
+          }
         })
-      }
+      })
+      changed
+    }
+
+
+   val changed = withLinkIdChunks {
+      case (min, max) =>
+        if(withSession) withDynTransaction {
+            fetchAndUpdate(min, max)
+          }
+        else fetchAndUpdate(min, max)
     }
     println(s"Geometries changed count: $changed")
   }
