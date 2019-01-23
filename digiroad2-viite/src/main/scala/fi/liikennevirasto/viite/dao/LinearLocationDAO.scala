@@ -377,8 +377,7 @@ class LinearLocationDAO {
     if(withSession)
       withDynTransaction {
         fetchByLinkId(linkIds, includeFloating, filterIds)
-      }
-    fetchByLinkId(linkIds, includeFloating, filterIds)
+      } else fetchByLinkId(linkIds, includeFloating, filterIds)
   }
 
   def fetchByLinkId(linkIds: Set[Long], includeFloating: Boolean = false, filterIds: Set[Long] = Set()): List[LinearLocation] = {
