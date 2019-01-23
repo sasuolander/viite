@@ -269,13 +269,10 @@ class DataImporter {
     withLinkIdChunks {
       case (min, max) =>
         withDynTransaction {
-        val linkIds = if(withSession) {
-          linearLocationDAO.fetchLinkIdsInChunkWithTX(min, max).toSet
-        } else {
-          linearLocationDAO.fetchLinkIdsInChunk(min, max).toSet
-        }
+        val linkIds = linearLocationDAO.fetchLinkIdsInChunkWithTX(min, max, withSession).toSet
+
         val roadLinksFromVVH = linkService.getCurrentAndComplementaryAndSuravageRoadLinksFromVVH(linkIds)
-        val unGroupedTopology = linearLocationDAO.fetchByLinkId(roadLinksFromVVH.map(_.linkId).toSet, false)
+        val unGroupedTopology = linearLocationDAO.fetchByLinkIdWithTX(roadLinksFromVVH.map(_.linkId).toSet, false, withSession = withSession)
         val topologyLocation = unGroupedTopology.groupBy(_.linkId)
         roadLinksFromVVH.foreach(roadLink => {
           val segmentsOnViiteDatabase = topologyLocation.getOrElse(roadLink.linkId, Set())

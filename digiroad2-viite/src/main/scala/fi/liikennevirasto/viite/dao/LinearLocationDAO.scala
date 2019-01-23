@@ -292,10 +292,12 @@ class LinearLocationDAO {
     """.as[Long].list
   }
 
-  def fetchLinkIdsInChunkWithTX(min: Long, max: Long): List[Long] = {
-    withDynSession {
-      fetchLinkIdsInChunk(min, max)
-    }
+  def fetchLinkIdsInChunkWithTX(min: Long, max: Long, withSession: Boolean = false): List[Long] = {
+    if(withSession) {
+      withDynTransaction {
+        fetchLinkIdsInChunk(min, max)
+      }
+    } else fetchLinkIdsInChunk(min, max)
   }
 
   private def queryList(query: String): List[LinearLocation] = {
@@ -369,6 +371,14 @@ class LinearLocationDAO {
 
   def queryByIdMassQuery(ids: Set[Long], rejectInvalids: Boolean = true): List[LinearLocation] = {
     fetchByIdMassQuery(ids, includeFloating = true, rejectInvalids)
+  }
+
+  def fetchByLinkIdWithTX(linkIds: Set[Long], includeFloating: Boolean = false, filterIds: Set[Long] = Set(), withSession: Boolean = false): List[LinearLocation] = {
+    if(withSession)
+      withDynTransaction {
+        fetchByLinkId(linkIds, includeFloating, filterIds)
+      }
+    fetchByLinkId(linkIds, includeFloating, filterIds)
   }
 
   def fetchByLinkId(linkIds: Set[Long], includeFloating: Boolean = false, filterIds: Set[Long] = Set()): List[LinearLocation] = {
