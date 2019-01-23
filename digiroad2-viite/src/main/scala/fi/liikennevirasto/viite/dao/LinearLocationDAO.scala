@@ -159,6 +159,10 @@ case class LinearLocation(id: Long, orderNumber: Double, linkId: Long, startMVal
 //TODO Rename all the method names to follow a rule like fetchById instead of have fetchById and QueryById
 class LinearLocationDAO {
 
+  def withDynTransaction[T](f: => T): T = OracleDatabase.withDynTransaction(f)
+
+  def withDynSession[T](f: => T): T = OracleDatabase.withDynSession(f)
+
   private def logger = LoggerFactory.getLogger(getClass)
 
   val formatter: DateTimeFormatter = ISODateTimeFormat.dateOptionalTimeParser()
@@ -286,6 +290,12 @@ class LinearLocationDAO {
       select distinct(loc.link_id)
       from linear_location loc where loc.link_id between $min and $max order by loc.link_id asc
     """.as[Long].list
+  }
+
+  def fetchLinkIdsInChunkWithTX(min: Long, max: Long): List[Long] = {
+    withDynSession {
+      fetchLinkIdsInChunk(min, max)
+    }
   }
 
   private def queryList(query: String): List[LinearLocation] = {

@@ -103,6 +103,7 @@ class DataImporterSpec extends FunSuite with Matchers {
   }
 
   val dataImporter = new DataImporter {
+
     override def withDynTransaction(f: => Unit): Unit = f
     override def withDynSession[T](f: => T): T = f
     override def getRoadAddressImporter(conversionDatabase: DatabaseDef, vvhClient: VVHClient, importOptions: ImportOptions) = {
@@ -220,7 +221,7 @@ class DataImporterSpec extends FunSuite with Matchers {
       when(mockVVHFrozenTimeRoadLinkClient.fetchByLinkIds(any[Set[Long]])).thenReturn(Seq.empty)
 
 
-      dataImporter.updateLinearLocationGeometry(mockVVHClient)
+      dataImporter.updateLinearLocationGeometry(mockVVHClient, withSession = true)
 
       val updatedLinearLocation = linearLocationDAO.fetchById(linearLocationId)
       updatedLinearLocation.isDefined should be (true)
