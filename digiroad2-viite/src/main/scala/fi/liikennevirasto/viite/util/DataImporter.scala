@@ -291,7 +291,7 @@ class DataImporter {
               ((distanceFromLastToHead > MinDistanceForGeometryUpdate) &&
                 (distanceFromLastToLast > MinDistanceForGeometryUpdate)) ||
               GeometryUtils.geometryIsReducible(newGeom)) {
-              updateGeometry(segment.id, newGeom, roadLink.geometry, segment.startMValue, service)
+              updateGeometry(segment.id, newGeom, roadLink.geometry, segment.startMValue, withSession,service)
               println("Changed geometry on linear location id " + segment.id + " and linkId =" + segment.linkId)
               changed += 1
             } else {
