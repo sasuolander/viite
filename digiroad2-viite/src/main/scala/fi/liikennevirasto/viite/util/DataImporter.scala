@@ -331,6 +331,7 @@ class DataImporter {
       if(GeometryUtils.geometryIsReducible(segmentGeometry) || GeometryUtils.geometryIsReducible(roadLinkGeometry)) {
 
         val reducedGeom = GeometryUtils.geometryReduction(roadLinkGeometry)
+        println(s"Show me testGeom $testGeom, ${testGeom.isDefined}" )
         val reducedGeometryLength = GeometryUtils.geometryLength(reducedGeom)
         val reducedGeomStruct = testGeom match {
           case Some(tg) => tg

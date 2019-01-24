@@ -230,6 +230,7 @@ class DataImporterSpec extends FunSuite with Matchers {
 
       when(mockRoadAddressService.getLinkIdsInChunkWithTX(any[Long], any[Long], any[Boolean])).thenReturn(List(originalLinearLocations.linkId))
       when(mockRoadAddressService.getLinearLocationsByLinkIdWithTX(any[Set[Long]], any[Boolean], any[Set[Long]], any[Boolean])).thenReturn(List(originalLinearLocations))
+      println(s" Sending testGeom ${structGeom}")
       dataImporter.updateLinearLocationGeometry(mockVVHClient, withSession = false, roadAddressService = Some(mockRoadAddressService), testGeom = Some(structGeom))
 
       val updatedLinearLocation = linearLocationDAO.fetchById(linearLocationId)
