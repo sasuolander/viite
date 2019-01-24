@@ -337,13 +337,9 @@ class DataImporter {
           case Some(tg) => tg
           case _ => OracleDatabase.createRoadsJGeometry(reducedGeom, dynamicSession.conn, reducedGeometryLength)
         }
-
-        withDynSession {
           sqlu"""UPDATE LINEAR_LOCATION
           SET geometry = $reducedGeomStruct
           WHERE id = ${linearLocationId}""".execute
-
-        }
       } else {
 
         val first = segmentGeometry.head
