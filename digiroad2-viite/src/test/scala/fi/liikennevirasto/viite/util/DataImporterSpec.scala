@@ -14,6 +14,7 @@ import Database.dynamicSession
 import fi.liikennevirasto.digiroad2.oracle.OracleDatabase
 import fi.liikennevirasto.digiroad2.service.RoadLinkService
 import fi.liikennevirasto.viite.RoadAddressService
+import oracle.jdbc.OracleArray
 import org.joda.time.DateTime
 import org.mockito.ArgumentMatchers.any
 import slick.driver.JdbcDriver.backend.DatabaseDef
@@ -214,7 +215,7 @@ class DataImporterSpec extends FunSuite with Matchers {
       val reducedGeom = GeometryUtils.geometryReduction(hugeGeom)
       println("<<<<<<<<<<<<<<<   Will I be able to create the structGeom on test definition?")
       val structGeom = try {
-          OracleDatabase.createRoadsJGeometry(hugeGeom, dynamicSession.conn, GeometryUtils.geometryLength(reducedGeom))
+          OracleDatabase.createRoadsJGeometry(reducedGeom, dynamicSession.conn, GeometryUtils.geometryLength(reducedGeom))
         } catch {
           case e:Exception => {
             println("<<<<<<<<<<<<<<<   Nope...")
@@ -237,8 +238,8 @@ class DataImporterSpec extends FunSuite with Matchers {
       when(mockVVHFrozenTimeRoadLinkClient.fetchByLinkIds(any[Set[Long]])).thenReturn(Seq.empty)
 
       when(mockRoadAddressService.getLinkIdsInChunkWithTX(any[Long], any[Long], any[Boolean])).thenReturn(List(originalLinearLocations.linkId))
-      when(mockRoadAddressService.getLinearLocationsByLinkId(any[Set[Long]], any[Boolean], any[Set[Long]], any[Boolean])).thenReturn(List(originalLinearLocations))
-
+      when(mockRoadAddressService.getLinearLocationsByLinkIdWithTX(any[Set[Long]], any[Boolean], any[Set[Long]], any[Boolean])).thenReturn(List(originalLinearLocations))
+      when(mockRoadAddressService.createRoadAddressStructGeometryWithTX(any[Seq[Point]], any[java.sql.Connection], any[Double], any[Boolean])).thenReturn(structGeom)
       dataImporter.updateLinearLocationGeometry(mockVVHClient, withSession = false, roadAddressService = Some(mockRoadAddressService))
 
       val updatedLinearLocation = linearLocationDAO.fetchById(linearLocationId)

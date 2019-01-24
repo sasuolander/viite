@@ -275,7 +275,7 @@ class DataImporter {
       } else roadAddressService.get
       val linkIds = service.getLinkIdsInChunkWithTX(min, max).toSet
       val roadLinksFromVVH = linkService.getCurrentAndComplementaryAndSuravageRoadLinksFromVVH(linkIds)
-      val unGroupedTopology = service.getLinearLocationsByLinkId(roadLinksFromVVH.map(_.linkId).toSet, false)
+      val unGroupedTopology = service.getLinearLocationsByLinkIdWithTX(roadLinksFromVVH.map(_.linkId).toSet, false)
       val topologyLocation = unGroupedTopology.groupBy(_.linkId)
       roadLinksFromVVH.foreach(roadLink => {
         val segmentsOnViiteDatabase = topologyLocation.getOrElse(roadLink.linkId, Set())
@@ -291,7 +291,7 @@ class DataImporter {
               ((distanceFromLastToHead > MinDistanceForGeometryUpdate) &&
                 (distanceFromLastToLast > MinDistanceForGeometryUpdate)) ||
               GeometryUtils.geometryIsReducible(newGeom)) {
-              updateGeometry(segment.id, newGeom, roadLink.geometry, segment.startMValue)
+              updateGeometry(segment.id, newGeom, roadLink.geometry, segment.startMValue, service)
               println("Changed geometry on linear location id " + segment.id + " and linkId =" + segment.linkId)
               changed += 1
             } else {
@@ -321,9 +321,10 @@ class DataImporter {
     * @param linearLocationId
     * @param segmentGeometry
     * @param roadLinkGeometry
+    * @param service
     * @param startM
     */
-  def updateGeometry(linearLocationId: Long, segmentGeometry: Seq[Point], roadLinkGeometry: Seq[Point], startM: Double): Unit = {
+  def updateGeometry(linearLocationId: Long, segmentGeometry: Seq[Point], roadLinkGeometry: Seq[Point], startM: Double, service: RoadAddressService): Unit = {
 
     val segmentGeometryLength = GeometryUtils.geometryLength(segmentGeometry)
     if (segmentGeometry.nonEmpty) {
@@ -335,7 +336,7 @@ class DataImporter {
 
         println("<<<<<<<<<<<<<<<   Will I be able to create the structGeom on updateGeometry?")
         val reducedGeomStruct = try {
-          OracleDatabase.createRoadsJGeometry(reducedGeom, dynamicSession.conn, reducedGeometryLength)
+          service.createRoadAddressStructGeometryWithTX(reducedGeom, dynamicSession.conn, reducedGeometryLength)
         } catch {
           case e:Exception => {
             println("<<<<<<<<<<<<<<<   Nope...")
