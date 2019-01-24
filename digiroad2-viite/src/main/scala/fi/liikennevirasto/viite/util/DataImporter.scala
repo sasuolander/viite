@@ -337,6 +337,7 @@ class DataImporter {
           case Some(tg) => tg
           case _ => OracleDatabase.createRoadsJGeometry(reducedGeom, dynamicSession.conn, reducedGeometryLength)
         }
+        //TODO: Test problem is now here... same with the dynSession even when using the "cheat" that is the testGeom
           sqlu"""UPDATE LINEAR_LOCATION
           SET geometry = $reducedGeomStruct
           WHERE id = ${linearLocationId}""".execute
