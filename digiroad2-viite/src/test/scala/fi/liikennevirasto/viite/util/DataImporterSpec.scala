@@ -211,6 +211,18 @@ class DataImporterSpec extends FunSuite with Matchers {
       val hugeGeom = (0.0 to 1000.0 by 10.0).map(t => {
         Point(t, t)
       })
+      val reducedGeom = GeometryUtils.geometryReduction(hugeGeom)
+      println("<<<<<<<<<<<<<<<   Will I be able to create the structGeom on test definition?")
+      val structGeom = try {
+          OracleDatabase.createRoadsJGeometry(hugeGeom, dynamicSession.conn, GeometryUtils.geometryLength(reducedGeom))
+        } catch {
+          case e:Exception => {
+            println("<<<<<<<<<<<<<<<   Nope...")
+            throw (e)
+          }
+        }
+      println("<<<<<<<<<<<<<<<   YEEEESSS")
+
       val vvhTestRoadLink = Seq(
         VVHRoadlink(linkId, 91, hugeGeom, Municipality, TrafficDirection.BothDirections, FeatureClass.AllOthers)
       )
@@ -232,7 +244,7 @@ class DataImporterSpec extends FunSuite with Matchers {
       val updatedLinearLocation = linearLocationDAO.fetchById(linearLocationId)
       updatedLinearLocation.isDefined should be (true)
       updatedLinearLocation.get.id should be (linearLocationId)
-      updatedLinearLocation.get.geometry should be (GeometryUtils.geometryReduction(hugeGeom))
+      updatedLinearLocation.get.geometry should be (reducedGeom)
     }
   }
 

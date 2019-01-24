@@ -331,7 +331,18 @@ class DataImporter {
 
         val reducedGeom = GeometryUtils.geometryReduction(roadLinkGeometry)
         val reducedGeometryLength = GeometryUtils.geometryLength(reducedGeom)
-        val reducedGeomStruct = OracleDatabase.createRoadsJGeometry(reducedGeom, dynamicSession.conn, reducedGeometryLength)
+//        val reducedGeomStruct = OracleDatabase.createRoadsJGeometry(reducedGeom, dynamicSession.conn, reducedGeometryLength)
+
+        println("<<<<<<<<<<<<<<<   Will I be able to create the structGeom on updateGeometry?")
+        val reducedGeomStruct = try {
+          OracleDatabase.createRoadsJGeometry(reducedGeom, dynamicSession.conn, reducedGeometryLength)
+        } catch {
+          case e:Exception => {
+            println("<<<<<<<<<<<<<<<   Nope...")
+            throw (e)
+          }
+        }
+        println("<<<<<<<<<<<<<<<   YEEEESSS")
 
         sqlu"""UPDATE LINEAR_LOCATION
           SET geometry = $reducedGeomStruct
