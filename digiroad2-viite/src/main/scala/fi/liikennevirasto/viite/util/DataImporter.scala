@@ -324,7 +324,7 @@ class DataImporter {
     * @param service
     * @param startM
     */
-  def updateGeometry(linearLocationId: Long, segmentGeometry: Seq[Point], roadLinkGeometry: Seq[Point], startM: Double, service: RoadAddressService): Unit = {
+  def updateGeometry(linearLocationId: Long, segmentGeometry: Seq[Point], roadLinkGeometry: Seq[Point], startM: Double, withSession: Boolean = true, service: RoadAddressService): Unit = {
 
     val segmentGeometryLength = GeometryUtils.geometryLength(segmentGeometry)
     if (segmentGeometry.nonEmpty) {
@@ -335,14 +335,7 @@ class DataImporter {
 //        val reducedGeomStruct = OracleDatabase.createRoadsJGeometry(reducedGeom, dynamicSession.conn, reducedGeometryLength)
 
         println("<<<<<<<<<<<<<<<   Will I be able to create the structGeom on updateGeometry?")
-        val reducedGeomStruct = try {
-          service.createRoadAddressStructGeometryWithTX(reducedGeom, dynamicSession.conn, reducedGeometryLength)
-        } catch {
-          case e:Exception => {
-            println("<<<<<<<<<<<<<<<   Nope...")
-            throw (e)
-          }
-        }
+        val reducedGeomStruct = service.createRoadAddressStructGeometryWithTX(reducedGeom, dynamicSession.conn, reducedGeometryLength, withSession)
         println("<<<<<<<<<<<<<<<   YEEEESSS")
 
         sqlu"""UPDATE LINEAR_LOCATION
