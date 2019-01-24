@@ -213,16 +213,7 @@ class DataImporterSpec extends FunSuite with Matchers {
         Point(t, t)
       })
       val reducedGeom = GeometryUtils.geometryReduction(hugeGeom)
-      println("<<<<<<<<<<<<<<<   Will I be able to create the structGeom on test definition?")
-      val structGeom = try {
-          OracleDatabase.createRoadsJGeometry(reducedGeom, dynamicSession.conn, GeometryUtils.geometryLength(reducedGeom))
-        } catch {
-          case e:Exception => {
-            println("<<<<<<<<<<<<<<<   Nope...")
-            throw (e)
-          }
-        }
-      println("<<<<<<<<<<<<<<<   YEEEESSS")
+      val structGeom = OracleDatabase.createRoadsJGeometry(reducedGeom, dynamicSession.conn, GeometryUtils.geometryLength(reducedGeom))
 
       val vvhTestRoadLink = Seq(
         VVHRoadlink(linkId, 91, hugeGeom, Municipality, TrafficDirection.BothDirections, FeatureClass.AllOthers)
@@ -239,7 +230,7 @@ class DataImporterSpec extends FunSuite with Matchers {
 
       when(mockRoadAddressService.getLinkIdsInChunkWithTX(any[Long], any[Long], any[Boolean])).thenReturn(List(originalLinearLocations.linkId))
       when(mockRoadAddressService.getLinearLocationsByLinkIdWithTX(any[Set[Long]], any[Boolean], any[Set[Long]], any[Boolean])).thenReturn(List(originalLinearLocations))
-      dataImporter.updateLinearLocationGeometry(mockVVHClient, withSession = false, roadAddressService = Some(mockRoadAddressService), connection = dynamicSession.conn)
+      dataImporter.updateLinearLocationGeometry(mockVVHClient, withSession = false, roadAddressService = Some(mockRoadAddressService), testGeom = Some(structGeom))
 
       val updatedLinearLocation = linearLocationDAO.fetchById(linearLocationId)
       updatedLinearLocation.isDefined should be (true)

@@ -1126,29 +1126,6 @@ class RoadAddressService(roadLinkService: RoadLinkService, roadwayDAO: RoadwayDA
     }
     else linearLocationDAO.fetchByLinkId(linkIds, includeFloating, filterIds)
   }
-
-  /**
-    * Helper method, will prepare the STRUCT of a complex multi point geometry to be able to save to the database.
-    * Will start it's own session if needed.
-    * @param geom
-    * @param connection
-    * @param endMValue
-    * @param withSession
-    * @return
-    */
-  def createRoadAddressStructGeometryWithTX(geom: Seq[Point], connection: java.sql.Connection, endMValue: Double, withSession: Boolean = false) = {
-    println(s"I entered createRoadAddressStructGeometryWithTX")
-    if (withSession) {
-      withDynSession {
-        println(s"s Within new session: $withSession")
-        OracleDatabase.createRoadsJGeometry(geom, connection, endMValue)
-      }
-    }
-    else {
-      println(s"s Outside new session: $withSession")
-      OracleDatabase.createRoadsJGeometry(geom, connection, endMValue)
-    }
-  }
 }
 
 
