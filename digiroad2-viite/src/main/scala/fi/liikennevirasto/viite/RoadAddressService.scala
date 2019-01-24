@@ -1137,12 +1137,17 @@ class RoadAddressService(roadLinkService: RoadLinkService, roadwayDAO: RoadwayDA
     * @return
     */
   def createRoadAddressStructGeometryWithTX(geom: Seq[Point], connection: java.sql.Connection, endMValue: Double, withSession: Boolean = false) = {
+    println(s"I entered createRoadAddressStructGeometryWithTX")
     if (withSession) {
       withDynSession {
+        println(s"s Within new session: $withSession")
         OracleDatabase.createRoadsJGeometry(geom, connection, endMValue)
       }
     }
-    else OracleDatabase.createRoadsJGeometry(geom, connection, endMValue)
+    else {
+      println(s"s Outside new session: $withSession")
+      OracleDatabase.createRoadsJGeometry(geom, connection, endMValue)
+    }
   }
 }
 
