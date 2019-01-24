@@ -329,7 +329,7 @@ class DataImporter {
     val segmentGeometryLength = GeometryUtils.geometryLength(segmentGeometry)
     if (segmentGeometry.nonEmpty) {
       if(GeometryUtils.geometryIsReducible(segmentGeometry) || GeometryUtils.geometryIsReducible(roadLinkGeometry)) {
-
+        println(s"Geometry is way to big, reducing linearLocationId: $linearLocationId to a few key points")
         val reducedGeom = GeometryUtils.geometryReduction(roadLinkGeometry)
         println(s"Show me testGeom $testGeom, ${testGeom.isDefined}" )
         val reducedGeometryLength = GeometryUtils.geometryLength(reducedGeom)
