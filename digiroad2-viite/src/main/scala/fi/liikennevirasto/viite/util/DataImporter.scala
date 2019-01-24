@@ -261,7 +261,7 @@ class DataImporter {
     }
 
 
-  def updateLinearLocationGeometry(vvhClient: VVHClient, customFilter: String = "", withSession: Boolean = true, roadAddressService: Option[RoadAddressService] = Option.empty): Unit = {
+  def updateLinearLocationGeometry(vvhClient: VVHClient, customFilter: String = "", withSession: Boolean = true, roadAddressService: Option[RoadAddressService] = Option.empty, connection: java.sql.Connection = dynamicSession.conn): Unit = {
     val eventBus = new DummyEventBus
     val linkService = new RoadLinkService(vvhClient, eventBus, new DummySerializer)
     val roadwayDAO = new RoadwayDAO
@@ -291,7 +291,7 @@ class DataImporter {
               ((distanceFromLastToHead > MinDistanceForGeometryUpdate) &&
                 (distanceFromLastToLast > MinDistanceForGeometryUpdate)) ||
               GeometryUtils.geometryIsReducible(newGeom)) {
-              updateGeometry(segment.id, newGeom, roadLink.geometry, segment.startMValue, withSession,service)
+              updateGeometry(segment.id, newGeom, roadLink.geometry, segment.startMValue, withSession, connection)
               println("Changed geometry on linear location id " + segment.id + " and linkId =" + segment.linkId)
               changed += 1
             } else {
@@ -324,7 +324,7 @@ class DataImporter {
     * @param service
     * @param startM
     */
-  def updateGeometry(linearLocationId: Long, segmentGeometry: Seq[Point], roadLinkGeometry: Seq[Point], startM: Double, withSession: Boolean = true, service: RoadAddressService): Unit = {
+  def updateGeometry(linearLocationId: Long, segmentGeometry: Seq[Point], roadLinkGeometry: Seq[Point], startM: Double, withSession: Boolean = true, connection: java.sql.Connection): Unit = {
 
     val segmentGeometryLength = GeometryUtils.geometryLength(segmentGeometry)
     if (segmentGeometry.nonEmpty) {
@@ -335,7 +335,7 @@ class DataImporter {
 //        val reducedGeomStruct = OracleDatabase.createRoadsJGeometry(reducedGeom, dynamicSession.conn, reducedGeometryLength)
 
         println("<<<<<<<<<<<<<<<   Will I be able to create the structGeom on updateGeometry?")
-        val reducedGeomStruct = service.createRoadAddressStructGeometryWithTX(reducedGeom, dynamicSession.conn, reducedGeometryLength, withSession)
+        val reducedGeomStruct = OracleDatabase.createRoadsJGeometry(reducedGeom, connection, reducedGeometryLength)
         println("<<<<<<<<<<<<<<<   YEEEESSS")
 
         sqlu"""UPDATE LINEAR_LOCATION
