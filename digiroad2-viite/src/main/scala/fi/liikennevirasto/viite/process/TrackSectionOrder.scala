@@ -7,7 +7,7 @@ import fi.liikennevirasto.digiroad2.{GeometryUtils, Matrix, Point, Vector3d}
 import fi.liikennevirasto.viite.MaxDistanceForConnectedLinks
 import fi.liikennevirasto.viite.dao.Discontinuity.Continuous
 import fi.liikennevirasto.viite.dao.LinkStatus._
-import fi.liikennevirasto.viite.dao.{BaseRoadAddress, CalibrationPoint, ProjectLink, ProjectLinkCalibrationPoint}
+import fi.liikennevirasto.viite.dao._
 import fi.liikennevirasto.viite.util.CalibrationPointsUtils
 
 
@@ -296,8 +296,8 @@ object TrackSectionOrder {
             (getOppositeEnd(l, currentPoint), l)
         }
         // Check if link direction needs to be turned and choose next point
-        val sideCode = (nextLink.geometry.last == nextPoint, nextLink.reversed && ready.isEmpty) match {
-          case (false, _) | (true, true) =>
+        val sideCode = (nextLink.geometry.last == nextPoint, nextLink.reversed , nextLink.status != LinkStatus.New && ready.isEmpty) match {
+          case (false, _, _) | (true, true, false) =>
             SideCode.AgainstDigitizing
           case _ =>
             SideCode.TowardsDigitizing

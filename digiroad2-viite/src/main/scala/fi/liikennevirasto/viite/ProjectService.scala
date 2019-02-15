@@ -1512,8 +1512,8 @@ class ProjectService(roadAddressService: RoadAddressService, roadLinkService: Ro
   private def recalculateProjectLinks(projectId: Long, userName: String, roadParts: Set[(Long, Long)] = Set()): Unit = {
 
     def setReversedFlag(adjustedLink: ProjectLink, before: Option[ProjectLink]): ProjectLink = {
-      before.map(_.sideCode) match {
-        case Some(value) if value != adjustedLink.sideCode && value != SideCode.Unknown =>
+      before.map(b => (b.sideCode, b.status)) match {
+        case Some(value) if value._1 != adjustedLink.sideCode && value._1 != SideCode.Unknown  && value._2 != LinkStatus.NotHandled=>
           adjustedLink.copy(reversed = !adjustedLink.reversed)
         case _ => adjustedLink
       }
@@ -1530,7 +1530,7 @@ class ProjectService(roadAddressService: RoadAddressService, roadLinkService: Ro
         grp =>
           val calibrationPoints = CalibrationPointDAO.fetchByRoadPart(projectId, grp._1._1, grp._1._2)
           ProjectSectionCalculator.assignMValues(grp._2, calibrationPoints).map(rpl =>
-            setReversedFlag(rpl, grp._2.find(pl => pl.id == rpl.id && rpl.roadwayId != 0L))
+            setReversedFlag(rpl, projectLinks.find(pl => pl.id == rpl.id && pl.roadwayNumber != 0L))
           )
       }.toSeq
 

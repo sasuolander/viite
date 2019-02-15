@@ -38,6 +38,10 @@ class DefaultSectionCalculatorStrategy extends RoadAddressSectionCalculatorStrat
         val calMap = userCalibrationPoints.map(c => c.projectLinkId -> c).toMap
 
         val calculatedSections = calculateSectionAddressValues(ordSections, calMap)
+        val oldTest = oldProjectLinks.map(o => (o.id, o.startAddrMValue, o.endAddrMValue, o.sideCode, o.reversed, o.status, o.getCalibrationCode)).filter(_._6 != LinkStatus.NotHandled).toList
+        val rightTest = right.map(o => (o.id, o.startAddrMValue, o.endAddrMValue, o.sideCode, o.reversed, o.status, o.getCalibrationCode)).filter(_._6 != LinkStatus.NotHandled).toList
+        val ordRightTest = ordSections.head.right.links.map(o => (o.id, o.startAddrMValue, o.endAddrMValue, o.sideCode, o.reversed, o.status, o.getCalibrationCode)).filter(_._6 != LinkStatus.NotHandled).toList
+        val calcRightTest = calculatedSections.head.right.links.map(o => (o.id, o.startAddrMValue, o.endAddrMValue, o.sideCode, o.reversed, o.status, o.getCalibrationCode)).filter(_._6 != LinkStatus.NotHandled).toList
         calculatedSections.flatMap { sec =>
           if (sec.right == sec.left)
             sec.right.links

@@ -184,7 +184,7 @@ trait TrackCalculatorStrategy {
   }
 
 
-  protected def setOnSideCalibrationPoints(projectLinks: Seq[ProjectLink], raCalibrationPoints: Map[Long, CalibrationCode], userCalibrationPoint: Map[Long, UserDefinedCalibrationPoint]): Seq[ProjectLink] = {
+  protected def setOnSideCalibrationPoints(projectLinks: Seq[ProjectLink], raCalibrationPointsAndSideCodes: Map[Long, (CalibrationCode, SideCode)], userCalibrationPoint: Map[Long, UserDefinedCalibrationPoint]): Seq[ProjectLink] = {
     if (projectLinks.head.status == NotHandled)
       projectLinks
     else
@@ -195,10 +195,12 @@ trait TrackCalculatorStrategy {
         case _ =>
           val pls = projectLinks.map {
             pl =>
-              val raCalibrationCode = raCalibrationPoints.getOrElse(pl.linearLocationId, CalibrationCode.No)
-              val raStartCP = raCalibrationCode == CalibrationCode.AtBeginning || raCalibrationCode == CalibrationCode.AtBoth
-              val raEndCP = raCalibrationCode == CalibrationCode.AtEnd || raCalibrationCode == CalibrationCode.AtBoth
-              setCalibrationPoint(pl, userCalibrationPoint.get(pl.id), raStartCP, raEndCP, RoadAddressSource)
+              val raCalibrationCode = raCalibrationPointsAndSideCodes.getOrElse(pl.linearLocationId, (CalibrationCode.No, SideCode.Unknown))
+              val raStartCP = raCalibrationCode._1 == CalibrationCode.AtBeginning || raCalibrationCode._1 == CalibrationCode.AtBoth
+              val raEndCP = raCalibrationCode._1 == CalibrationCode.AtEnd || raCalibrationCode._1 == CalibrationCode.AtBoth
+              val sideCodeAdjustedRaStartCP = if ((pl.sideCode != raCalibrationCode._2 || pl.reversed) && raCalibrationCode._1 != CalibrationCode.No) !raStartCP else raStartCP
+              val sideCodeAdjustedRaEndCP = if ((pl.sideCode != raCalibrationCode._2 || pl.reversed) && raCalibrationCode._1 != CalibrationCode.No) !raEndCP else raEndCP
+              setCalibrationPoint(pl, userCalibrationPoint.get(pl.id), sideCodeAdjustedRaStartCP, sideCodeAdjustedRaEndCP, RoadAddressSource)
           }
 
           val calPointSource1 = if (pls.tail.head.calibrationPoints._1.isDefined) pls.tail.head.calibrationPoints._1.get.source else ProjectLinkSource
@@ -250,10 +252,10 @@ trait TrackCalculatorStrategy {
   def setCalibrationPoints(calculatorResult: TrackCalculatorResult, userDefinedCalibrationPoint: Map[Long, UserDefinedCalibrationPoint]): (Seq[ProjectLink], Seq[ProjectLink]) = {
     val projectLinks = calculatorResult.leftProjectLinks ++ calculatorResult.rightProjectLinks
 
-    val roadAddressCalibrationPoints = new LinearLocationDAO().getLinearLocationCalibrationCode(projectLinks.map(_.linearLocationId).filter(_ > 0).distinct)
+    val roadAddressCalibrationPointsAndSideCode = new LinearLocationDAO().getLinearLocationCalibrationCodeAndSideCode(projectLinks.map(_.linearLocationId).filter(_ > 0).distinct)
 
-    (setOnSideCalibrationPoints(calculatorResult.leftProjectLinks, roadAddressCalibrationPoints, userDefinedCalibrationPoint),
-      setOnSideCalibrationPoints(calculatorResult.rightProjectLinks, roadAddressCalibrationPoints, userDefinedCalibrationPoint))
+    (setOnSideCalibrationPoints(calculatorResult.leftProjectLinks, roadAddressCalibrationPointsAndSideCode, userDefinedCalibrationPoint),
+      setOnSideCalibrationPoints(calculatorResult.rightProjectLinks, roadAddressCalibrationPointsAndSideCode, userDefinedCalibrationPoint))
   }
 
   def getStrategyAddress(projectLink: ProjectLink): Long = projectLink.endAddrMValue
