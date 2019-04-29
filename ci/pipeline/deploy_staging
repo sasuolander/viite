@@ -122,18 +122,6 @@ pipeline {
                         "--build-arg JENKINS_UID=${jenkins_uid}"
                     ].join(" ")
                     docker.build(
-                        "viite-frontend",
-                        "${build_args} -f ci/docker/Dockerfile.node ci"
-                    )
-                    docker.build(
-                        "viite-backend-sbt",
-                        "${build_args} -f ci/docker/Dockerfile.sbt ci"
-                    )
-                    docker.build(
-                        "viite-maven-publish",
-                        "${build_args} -f ci/docker/Dockerfile.maven ci"
-                    )
-                    docker.build(
                         "viite-cap",
                         "${build_args} -f ci/docker/Dockerfile.ruby ci"
                      )
