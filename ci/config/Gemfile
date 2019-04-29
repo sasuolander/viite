@@ -3,3 +3,4 @@ source "https://rubygems.org"
 
 # gem "rails"
 gem 'capistrano', '~> 3.1.0'
+gem 'etc', '~> 1.0.0'
