@@ -96,7 +96,7 @@ pipeline {
 
                         STAGE_DEPLOY_CMD = [
                             "cd ~/",
-                            "bundle exec cap ${get_environment()?.trim()} deploy"
+                            "bundle exec cap ${get_environment()?.trim()} deploy --trace"
                         ].join(" && ")
                     }
                 }
@@ -148,89 +148,6 @@ pipeline {
                 }
             }
         }
-        stage("Build: Frontend") {
-            agent {
-                docker {
-                    image "viite-frontend"
-                    reuseNode true
-                    args "-v viite-package-${get_environment()?.trim()}:/home/jenkins/package"
-                }
-            }
-            when {
-                beforeAgent true
-                expression {
-                    get_environment()?.trim()
-                }
-            }
-            steps {
-                sh STAGE_FRONTEND_BUILD_CMD
-                echo "Running frontend build... (skipped for now)"
-            }
-            post {
-                failure {
-                    slackSend(
-                        color: "danger",
-                        message: "${NOTIFY_SLACK_SUBJECT}\nStage ${STAGE_NAME} failure! Check <${BUILD_URL}console|console>!"
-                    )
-                }
-            }
-        }
-		stage("Build: Backend") {
-            agent {
-                docker {
-                    image "viite-backend-sbt"
-                    reuseNode true
-                    args "-v viite-package-${get_environment()?.trim()}:/home/jenkins/package"
-                }
-            }
-            when {
-                beforeAgent true
-                expression {
-                    get_environment()?.trim()
-                }
-            }
-            steps {
-                echo "Build and run backend tests"
-                sh STAGE_SETUP_ORACLE
-                sh STAGE_BACKEND_BUILD_CMD
-            }
-            post {
-                failure {
-                    slackSend(
-                        color: "danger",
-                        message: "${NOTIFY_SLACK_SUBJECT}\nStage ${STAGE_NAME} failure! Check <${BUILD_URL}console|console>!"
-                    )
-                }
-            }
-        }
-        stage("Package & Publish") {
-            agent {
-                docker {
-                    image "viite-maven-publish"
-                    reuseNode true
-                    args "-v viite-package-${get_environment()?.trim()}:/home/jenkins/package"
-                }
-            }
-            when {
-                beforeAgent true
-                expression {
-                    get_environment()?.trim()
-                }
-            }
-            steps {
-                echo "Packaging and publishing release to Nexus"
-                sh STAGE_PACKAGE_CMD
-                sh STAGE_PUBLISH_CMD
-            }
-            post {
-                failure {
-                    slackSend(
-                        color: "danger",
-                        message: "${NOTIFY_SLACK_SUBJECT} - Stage ${STAGE_NAME} failure!\nCheck <${BUILD_URL}console|console>!"
-                    )
-                }
-            }
-        }
        stage("Deploy") {
 
             agent {
@@ -255,22 +172,10 @@ pipeline {
                 }
                 sh STAGE_DEPLOY_CMD
             }
-            post {
-                failure {
-                    slackSend(
-                        color: "danger",
-                        message: "${NOTIFY_SLACK_SUBJECT} - Stage ${STAGE_NAME} failure!\nCheck <${BUILD_URL}console|console>!"
-                    )
-                }
-            }
         }
     }
     post {
         always {
-            slackSend(
-                color: currentBuild.currentResult.equals("SUCCESS") ? "good" : "danger",
-                message: "${NOTIFY_SLACK_SUBJECT}\nJob ${currentBuild.currentResult}! More info <${BUILD_URL}|here>."
-            )
             deleteDir()
         }
     }
