@@ -566,6 +566,33 @@ class LinearLocationDAO {
     }
   }
 
+  def fetchLinearLocationByBoundingBox(boundingRectangle: BoundingRectangle, roadNumberLimits: Seq[(Int, Int)]): Seq[LinearLocation] = {
+    time(logger, "Fetch all the linear locations of the matching roadways by bounding box") {
+      val extendedBoundingRectangle = BoundingRectangle(boundingRectangle.leftBottom + boundingRectangle.diagonal.scale(.15),
+        boundingRectangle.rightTop - boundingRectangle.diagonal.scale(.15))
+
+      val boundingBoxFilter = OracleDatabase.boundingBoxFilter(extendedBoundingRectangle, "iloc.geometry")
+
+      val boundingBoxQuery = if (roadNumberLimits.isEmpty) {
+        s"""select ROADWAY_NUMBER from linear_location iloc
+           where iloc.valid_to is null and $boundingBoxFilter"""
+      } else {
+        val roadNumberLimitsFilter = withRoadNumbersFilter(roadNumberLimits, alias = "ra")
+        s"""select iloc.ROADWAY_NUMBER
+            from linear_location iloc
+            inner join ROADWAY ra on ra.ROADWAY_NUMBER = iloc.ROADWAY_NUMBER
+            where $roadNumberLimitsFilter and iloc.valid_to is null and $boundingBoxFilter"""
+      }
+
+      val query =
+        s"""
+        $selectFromLinearLocation
+        where valid_to is null and ROADWAY_NUMBER in ($boundingBoxQuery)
+        """
+      queryList(query)
+    }
+  }
+
   def fetchByRoadways(roadwayNumbers: Set[Long]): Seq[LinearLocation] = {
     if (roadwayNumbers.isEmpty) {
       Seq()

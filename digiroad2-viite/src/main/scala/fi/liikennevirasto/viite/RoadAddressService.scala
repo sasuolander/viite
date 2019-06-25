@@ -699,6 +699,9 @@ object RoadClass {
     RampsAndRoundAboutsClass, PedestrianAndBicyclesClassA, PedestrianAndBicyclesClassB, WinterRoadsClass, PathsClass, ConstructionSiteTemporaryClass,
     PrivateRoadClass, NoClass)
 
+  val nodeAndJunctionRoadClass = Set(HighwayClass, MainRoadClass, RegionalClass, ConnectingClass, MinorConnectingClass,
+    StreetClass, PrivateRoadClass, WinterRoadsClass, PathsClass)
+
   def get(roadNumber: Int): Int = {
     values.find(_.roads contains roadNumber).getOrElse(NoClass).value
   }

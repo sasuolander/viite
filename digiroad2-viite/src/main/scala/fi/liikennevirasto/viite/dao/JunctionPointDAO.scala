@@ -60,6 +60,19 @@ class JunctionPointDAO extends BaseDAO {
     }
   }
 
+  def fetchJunctionPointsByRoadwayPoints(roadwayNumber: Long, addrM: Long): Option[JunctionPoint] = {
+    val query =
+      s"""
+       SELECT JP.ID, JP.BEFORE_AFTER, JP.ROADWAY_POINT_ID, JP.JUNCTION_ID, JP.START_DATE, JP.END_DATE, JP.VALID_FROM, JP.VALID_TO, JP.CREATED_BY, JP.CREATED_TIME,
+       RP.ROADWAY_NUMBER, RP.ADDR_M FROM JUNCTION_POINT JP
+       JOIN ROADWAY_POINT RP ON (RP.ID = ROADWAY_POINT_ID)
+       JOIN JUNCTION J on (J.ID = JP.JUNCTION_ID)
+       where J.valid_to is null and JP.valid_to is null and
+       JP.ROADWAY_NUMBER = $roadwayNumber and RP.ADDR_M = $addrM
+     """
+    queryList(query).headOption
+  }
+
   def fetchByRoadwayPointIds(roadwayPointIds: Seq[Long]): Seq[JunctionPoint] = {
     if (roadwayPointIds.isEmpty) {
       Seq()
