@@ -73,6 +73,8 @@ package object viite {
   val InsufficientTrackCoverageMessage = "Tieosalta puuttuu toinen ajorata. Numeroi molemmat ajoradat."
   val DiscontinuousAddressSchemeMessage = "Tieosoitteiden laskenta ei onnistunut. Ota yhteys pääkäyttäjään."
   val ErrorWithNewAction = "Uusi-toimenpidettä ei voi tallentaa, koska se koskettaa toisen projektin käytössä olevaa tielinkkiä."
+  val ErrorWithNewActionInTwoTrackRoad = "Uusi-toimenpidettä ei voi tallentaa, koska se luo kiertotien kaksi ajorataiselle tielle."
+
   //VIITE-453 Not implemented yet (2)
   val SharedLinkIdsExistMessage = "Linkillä on voimassa oleva tieosoite tämän projektin alkupäivämäärällä."
   val UnsuccessfulRecalculationMessage = "Etäisyysarvojen laskenta epäonnistui."

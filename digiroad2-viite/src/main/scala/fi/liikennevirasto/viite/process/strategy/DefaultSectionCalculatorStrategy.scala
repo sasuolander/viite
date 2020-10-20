@@ -9,6 +9,7 @@ import fi.liikennevirasto.viite.dao.ProjectCalibrationPointDAO.UserDefinedCalibr
 import fi.liikennevirasto.viite.dao._
 import fi.liikennevirasto.viite.process._
 import org.slf4j.LoggerFactory
+import fi.liikennevirasto.viite.{ErrorWithNewActionInTwoTrackRoad, ProjectValidationException}
 
 import scala.annotation.tailrec
 import scala.collection.immutable.ListMap
@@ -20,6 +21,16 @@ class DefaultSectionCalculatorStrategy extends RoadAddressSectionCalculatorStrat
   override val name: String = "Normal Section"
 
   val projectLinkDAO = new ProjectLinkDAO
+
+  /* A condition from VIITE-2515 to prevent two track road diversion. */
+  private def newLinkNotAtTheEndofTwoTrackRoad(leftTrack: Seq[ProjectLink], rightTrack: Seq[ProjectLink]): Boolean = {
+    def newLinkInContinuousPart(pl: ProjectLink): Boolean = {
+      pl.status == LinkStatus.New &&
+      pl.discontinuity == Discontinuity.Continuous &&
+      (pl.track == Track.LeftSide || pl.track == Track.RightSide)
+    }
+    leftTrack.exists(newLinkInContinuousPart) || rightTrack.exists(newLinkInContinuousPart)
+  }
 
   override def assignMValues(newProjectLinks: Seq[ProjectLink], oldProjectLinks: Seq[ProjectLink], userCalibrationPoints: Seq[UserDefinedCalibrationPoint]): Seq[ProjectLink] = {
 
@@ -36,6 +47,10 @@ class DefaultSectionCalculatorStrategy extends RoadAddressSectionCalculatorStrat
         }
         val currStartPoints = findStartingPoints(projectLinks, oldLinks, oldRoadLinks, userCalibrationPoints)
         val (right, left) = TrackSectionOrder.orderProjectLinksTopologyByGeometry(currStartPoints, projectLinks ++ oldLinks)
+
+        if (newLinkNotAtTheEndofTwoTrackRoad(left, right))
+          throw new ProjectValidationException(ErrorWithNewActionInTwoTrackRoad)
+
         val ordSections = TrackSectionOrder.createCombinedSections(right, left)
 
         // TODO: userCalibrationPoints to Long -> Seq[UserDefinedCalibrationPoint] in method params
@@ -61,6 +76,9 @@ class DefaultSectionCalculatorStrategy extends RoadAddressSectionCalculatorStrat
           throw ex
         case ex: NullPointerException =>
           logger.error("Delta calculation failed (NPE)", ex)
+          throw ex
+        case ex: ProjectValidationException =>
+          logger.error("Can not add new links in the middle of two track road.", ex)
           throw ex
         case ex: Exception =>
           logger.error("Delta calculation not possible: " + ex.getMessage)
@@ -302,19 +320,9 @@ class DefaultSectionCalculatorStrategy extends RoadAddressSectionCalculatorStrat
         } else if (chainEndPoints.forall(_._2.endAddrMValue != 0) && oldFirst.isDefined) {
           val otherEndPoint = chainEndPoints.filterNot(_._2.id == oldFirst.get.id)
           if (otherEndPoint.nonEmpty && otherEndPoint.head._2.endPoint.connected(oldFirst.get.startingPoint)) {
-            // Check reversed status to select starting point
-            if (otherEndPoint.head._2.reversed && oldFirst.get.reversed) {
-              (oldFirst.get.endPoint, oldFirst.get)
-            } else {
-              (otherEndPoint.head._1, otherEndPoint.head._2)
-            }
+            (otherEndPoint.head._1, otherEndPoint.head._2)
           } else {
-            // Check reversed status to select starting point
-            if (oldFirst.get.reversed ) {
-              (oldFirst.get.getEndPoints._2, oldFirst.get)
-            } else {
-              (oldFirst.get.getEndPoints._1, oldFirst.get)
-            }
+            (oldFirst.get.getEndPoints._1, oldFirst.get)
           }
         } else {
           if (remainLinks.forall(_.endAddrMValue == 0) && oppositeTrackLinks.nonEmpty && oppositeTrackLinks.exists(_.endAddrMValue != 0)) {
