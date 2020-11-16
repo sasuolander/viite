@@ -119,7 +119,8 @@ class DefaultSectionCalculatorStrategy extends RoadAddressSectionCalculatorStrat
             if ( leftAligned.maxBy(_.endAddrMValue).discontinuity !=
                  rightAligned.maxBy(_.endAddrMValue).discontinuity &&
               left.map(_.roadwayNumber).distinct.size == right.map(_.roadwayNumber).distinct.size) {
-              TrackSectionRoadway.handleRoadwayNumbers(rightLinks, rightAligned, otherRightAligned, leftLinks, leftAligned, otherLeftAligned)
+              //TrackSectionRoadway.handleRoadwayNumbers(rightLinks, rightAligned, otherRightAligned, leftLinks, leftAligned, otherLeftAligned)
+              TrackSectionRoadway.handleRoadwayNumbers(rightLinks, right, othersRight, leftLinks, left, othersLeft)
             } else {
               TrackSectionRoadway.handleRoadwayNumbers(rightLinks, right, othersRight, leftLinks, left, othersLeft)
             }
