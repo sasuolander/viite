@@ -414,6 +414,7 @@ class NodesAndJunctionsService(roadwayDAO: RoadwayDAO, roadwayPointDAO: RoadwayP
         // Flag to determine if junction has been reversed
         val junctionReversed = roadwayChanges.exists(ch => ch.changeInfo.target.startAddressM.nonEmpty && projectLink.startAddrMValue >= ch.changeInfo.target.startAddressM.get
           && ch.changeInfo.target.endAddressM.nonEmpty && projectLink.endAddrMValue <= ch.changeInfo.target.endAddressM.get && ch.changeInfo.reversed)
+
         // Flag to determine if junction has been transferred + reversed. If its transferred the roadwayNumber has changed and it cant be found with originalLinks roadwayNumber
         val junctionTransferredAndReversed = roadwayChanges.exists(ch => ch.changeInfo.target.startAddressM.nonEmpty && projectLink.startAddrMValue >= ch.changeInfo.target.startAddressM.get
           && ch.changeInfo.target.endAddressM.nonEmpty && projectLink.endAddrMValue <= ch.changeInfo.target.endAddressM.get && ch.changeInfo.reversed && ch.changeInfo.changeType == AddressChangeType.Transfer)
@@ -424,22 +425,24 @@ class NodesAndJunctionsService(roadwayDAO: RoadwayDAO, roadwayPointDAO: RoadwayP
         val originalLink = mappedRoadwayNumbers.find(mpr => projectLink.startAddrMValue == mpr.newStartAddr && projectLink.endAddrMValue == mpr.newEndAddr && mpr.newRoadwayNumber == projectLink.roadwayNumber)
         logger.info(s"originalLink empty: ${originalLink.isEmpty}")
 
+        logger.info(s"original roadwaynumber: ${originalLink.get.originalRoadwayNumber} new roadwaynumber: ${originalLink.get.newRoadwayNumber}")
+
         val existingHeadJunctionPoint = {
           if (originalLink.nonEmpty) {
-            if (!junctionReversed || junctionTransferredAndReversed)
+            if (!junctionReversed)
               junctionPointDAO.fetchByRoadwayPoint(projectLink.roadwayNumber, projectLink.startAddrMValue, BeforeAfter.After)
             else {
-              junctionPointDAO.fetchByRoadwayPoint(originalLink.get.originalRoadwayNumber, originalLink.get.newStartAddr, BeforeAfter.Before)
+              junctionPointDAO.fetchByRoadwayPoint(originalLink.get.newRoadwayNumber, originalLink.get.newStartAddr, BeforeAfter.Before)
             }
           } else None
         }
 
         val existingLastJunctionPoint = {
           if (originalLink.nonEmpty) {
-            if (!junctionReversed || junctionTransferredAndReversed)
+            if (!junctionReversed)
               junctionPointDAO.fetchByRoadwayPoint(projectLink.roadwayNumber, projectLink.startAddrMValue, BeforeAfter.Before)
             else {
-              junctionPointDAO.fetchByRoadwayPoint(originalLink.get.originalRoadwayNumber, originalLink.get.newEndAddr, BeforeAfter.After)
+              junctionPointDAO.fetchByRoadwayPoint(originalLink.get.newRoadwayNumber, originalLink.get.newEndAddr, BeforeAfter.After)
             }
           } else None
         }
