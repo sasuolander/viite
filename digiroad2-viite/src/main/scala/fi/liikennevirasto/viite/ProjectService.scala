@@ -2015,6 +2015,7 @@ class ProjectService(roadAddressService: RoadAddressService, roadLinkService: Ro
                                       roadwayIds: Seq[Long], generatedRoadways: Seq[(Seq[Roadway], Seq[LinearLocation], Seq[ProjectLink])], projectLinks: Seq[ProjectLink],
                                       endDate: Option[DateTime], nodeIds: Seq[Long], username: String): Unit = {
       logger.debug(s"Updating and inserting roadway points")
+      logger.info(s"Updating and inserting roadway points")
       roadAddressService.handleRoadwayPointsUpdate(roadwayChanges, projectLinkChanges, username)
 
       logger.debug(s"Updating and inserting calibration points")

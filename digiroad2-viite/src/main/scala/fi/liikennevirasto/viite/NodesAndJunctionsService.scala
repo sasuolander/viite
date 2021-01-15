@@ -408,15 +408,25 @@ class NodesAndJunctionsService(roadwayDAO: RoadwayDAO, roadwayPointDAO: RoadwayP
       val nonTerminatedLinks: Seq[BaseRoadAddress] = projectLinks.filter(pl => RoadClass.forJunctions.contains(pl.roadNumber.toInt) && pl.status != LinkStatus.Terminated)
       // Update junctionPoint Before/After if projectLink is reversed
       nonTerminatedLinks.map { projectLink =>
+        logger.info(s"projectLink: ${projectLink}")
+        logger.info(s"projectLink reversed ${projectLink.reversed}")
 
+        // Flag to determine if junction has been reversed
         val junctionReversed = roadwayChanges.exists(ch => ch.changeInfo.target.startAddressM.nonEmpty && projectLink.startAddrMValue >= ch.changeInfo.target.startAddressM.get
           && ch.changeInfo.target.endAddressM.nonEmpty && projectLink.endAddrMValue <= ch.changeInfo.target.endAddressM.get && ch.changeInfo.reversed)
+        // Flag to determine if junction has been transferred + reversed. If its transferred the roadwayNumber has changed and it cant be found with originalLinks roadwayNumber
+        val junctionTransferredAndReversed = roadwayChanges.exists(ch => ch.changeInfo.target.startAddressM.nonEmpty && projectLink.startAddrMValue >= ch.changeInfo.target.startAddressM.get
+          && ch.changeInfo.target.endAddressM.nonEmpty && projectLink.endAddrMValue <= ch.changeInfo.target.endAddressM.get && ch.changeInfo.reversed && ch.changeInfo.changeType == AddressChangeType.Transfer)
+
+        logger.info(s"Transfer + reversed:  ${junctionTransferredAndReversed}")
+        logger.info(s"junction reversed: ${junctionReversed}")
 
         val originalLink = mappedRoadwayNumbers.find(mpr => projectLink.startAddrMValue == mpr.newStartAddr && projectLink.endAddrMValue == mpr.newEndAddr && mpr.newRoadwayNumber == projectLink.roadwayNumber)
+        logger.info(s"originalLink empty: ${originalLink.isEmpty}")
 
         val existingHeadJunctionPoint = {
           if (originalLink.nonEmpty) {
-            if (!junctionReversed)
+            if (!junctionReversed || junctionTransferredAndReversed)
               junctionPointDAO.fetchByRoadwayPoint(projectLink.roadwayNumber, projectLink.startAddrMValue, BeforeAfter.After)
             else {
               junctionPointDAO.fetchByRoadwayPoint(originalLink.get.originalRoadwayNumber, originalLink.get.newStartAddr, BeforeAfter.Before)
@@ -426,13 +436,16 @@ class NodesAndJunctionsService(roadwayDAO: RoadwayDAO, roadwayPointDAO: RoadwayP
 
         val existingLastJunctionPoint = {
           if (originalLink.nonEmpty) {
-            if (!junctionReversed)
+            if (!junctionReversed || junctionTransferredAndReversed)
               junctionPointDAO.fetchByRoadwayPoint(projectLink.roadwayNumber, projectLink.startAddrMValue, BeforeAfter.Before)
             else {
               junctionPointDAO.fetchByRoadwayPoint(originalLink.get.originalRoadwayNumber, originalLink.get.newEndAddr, BeforeAfter.After)
             }
           } else None
         }
+
+        logger.info(s"existingLast: ${existingLastJunctionPoint}")
+        logger.info(s"existingHead: ${existingHeadJunctionPoint}")
 
         if (existingHeadJunctionPoint.nonEmpty) {
           if (junctionReversed) {
@@ -801,11 +814,13 @@ class NodesAndJunctionsService(roadwayDAO: RoadwayDAO, roadwayPointDAO: RoadwayP
     def getObsoleteNodePointsAndJunctionPointsByModifiedRoadwayNumbers(roadwayNumbersSection: Seq[Long], terminatedJunctionPoints: Seq[JunctionPoint]): (Seq[NodePoint], Seq[JunctionPoint]) = {
       logger.info(s"Modified roadway number: ${roadwayNumbersSection.toList}")
       val roadwayPoints = roadwayPointDAO.fetchByRoadwayNumbers(roadwayNumbersSection)
+      roadwayPoints.foreach(rwp => logger.info(s"roadwayPoints: ${rwp.id}"))
       val sortedRoadways = roadwayDAO.fetchAllByRoadwayNumbers(roadwayNumbersSection.toSet).sortBy(_.startAddrMValue)
 
       val (startAddrMValue, endAddrMValue) = (sortedRoadways.headOption.map(_.startAddrMValue), sortedRoadways.lastOption.map(_.endAddrMValue))
 
       val obsoleteNodePoints = sortedRoadways.flatMap { rw =>
+        logger.info(s"rw: rwNum${rw.roadwayNumber} rwID: ${rw.id}")
         val nodePoints = nodePointDAO.fetchByRoadwayPointIds(roadwayPoints.filter(_.roadwayNumber == rw.roadwayNumber).map(_.id))
           .filter(_.nodePointType == NodePointType.RoadNodePoint)
         rw.track match {
@@ -820,10 +835,13 @@ class NodesAndJunctionsService(roadwayDAO: RoadwayDAO, roadwayPointDAO: RoadwayP
 
       val junctions = junctionDAO.fetchByIds(junctionPointDAO.fetchByRoadwayPointIds(roadwayPoints.map(_.id)).map(_.junctionId))
       val obsoleteJunctionPoints: Seq[JunctionPoint] = junctions.flatMap { junction =>
+        logger.info(s"junction: ${junction.junctionNumber}")
         val terminatedJunctionPoints = groupedTerminatedJunctionPoints.getOrElse(junction.id, Seq.empty[JunctionPoint])
         val affectedJunctionsPoints = junctionPointDAO.fetchByJunctionIds(Seq(junction.id)) match {
           case junctionPoints if junctionPoints.exists(jp => RoadClass.RampsAndRoundaboutsClass.roads.contains(jp.roadNumber)) =>
+            junctionPoints.foreach(jp => logger.info(s" --case junctionPoints-- this jp belongs to junctionid: ${jp.junctionId}"))
             val junctionPointsToCheck = junctionPoints.filterNot(jp => terminatedJunctionPoints.map(_.id).contains(jp.id))
+           junctionPointsToCheck.foreach(jptocheck => logger.info(s"junctionPointsToCheck: ${jptocheck}"))
             if (junctionPointsToCheck.size <= 1) {
               // basic rule
               junctionPointsToCheck
@@ -834,6 +852,8 @@ class NodesAndJunctionsService(roadwayDAO: RoadwayDAO, roadwayPointDAO: RoadwayP
           case junctionPoints if !junctionPoints.forall(jp => RoadClass.RampsAndRoundaboutsClass.roads.contains(jp.roadNumber)) =>
 
             val junctionPointsToCheck = junctionPoints.filterNot(jp => terminatedJunctionPoints.map(_.id).contains(jp.id))
+            logger.info(s"Alempi case: ${junctionPointsToCheck}")
+            logger.info(s"Size ${junctionPointsToCheck.size}")
             // check if the terminated junction Points are the unique ones in the Junction to avoid further complex validations
             if (junctionPointsToCheck.size <= 1) {
               // basic rule
@@ -843,12 +863,19 @@ class NodesAndJunctionsService(roadwayDAO: RoadwayDAO, roadwayPointDAO: RoadwayP
               ObsoleteJunctionPointFilters.sameRoadAddressIntersection(junctionPointsToCheck) ||
               ObsoleteJunctionPointFilters.roadEndingInSameOwnRoadNumber(junctionPointsToCheck) ||
               ObsoleteJunctionPointFilters.discontinuousPartIntersection(junctionPointsToCheck)
-            )
+            ) {
+              if (ObsoleteJunctionPointFilters.multipleRoadNumberIntersection(junctionPointsToCheck)) logger.info(s"multipleRoadNumberIntersection")
+              else if (ObsoleteJunctionPointFilters.multipleTrackIntersection(junctionPointsToCheck)) logger.info(s"multipleTrackIntersection")
+              else if (ObsoleteJunctionPointFilters.sameRoadAddressIntersection(junctionPointsToCheck)) logger.info(s"sameRoadAddressIntersection")
+              else if (ObsoleteJunctionPointFilters.roadEndingInSameOwnRoadNumber(junctionPointsToCheck)) logger.info(s"roadEndingInSameOwnRoadNumber")
+              else if (ObsoleteJunctionPointFilters.discontinuousPartIntersection(junctionPointsToCheck)) logger.info(s"discontinuousPartIntersection")
+              logger.info(s"else if ")
               Seq.empty[JunctionPoint]
-            else
+            } else
               junctionPointsToCheck
           case _ => Seq.empty[JunctionPoint]
         }
+        affectedJunctionsPoints.foreach(afjp => logger.info(s"affectedJunctionPoints: ${afjp.id}"))
         affectedJunctionsPoints
       }
       logger.info(s"Obsolete node points : ${obsoleteNodePoints.map(_.id).toSet}")
@@ -859,9 +886,11 @@ class NodesAndJunctionsService(roadwayDAO: RoadwayDAO, roadwayPointDAO: RoadwayP
     def expireJunctionsAndJunctionPoints(junctionPoints: Seq[JunctionPoint]): Seq[Junction] = {
       // Expire current junction points rows
       val junctionPointsIds = junctionPoints.map(_.id)
+
       logger.info(s"Expiring junction points : ${junctionPointsIds.toSet}")
       junctionPointDAO.expireById(junctionPointsIds)
       val junctionIdsToCheck = junctionPoints.map(_.junctionId).distinct
+      logger.info(s"junctionIDStoCheck: ${junctionIdsToCheck}")
 
       // Remove junctions that no longer have valid junction Points
       val junctionsToExpireIds = junctionIdsToCheck.filter { id =>
@@ -929,8 +958,11 @@ class NodesAndJunctionsService(roadwayDAO: RoadwayDAO, roadwayPointDAO: RoadwayP
 
     val projectLinkSections = filteredProjectLinks.groupBy(projectLink => (projectLink.roadNumber, projectLink.roadPartNumber))
     val obsoletePointsFromModifiedRoadways: Seq[(Seq[NodePoint], Seq[JunctionPoint])] = projectLinkSections.mapValues { section: Seq[ProjectLink] =>
+      logger.info(s"section")
+      section.foreach(pl=>  logger.info(s"${pl.linkId}, "))
       continuousSectionByRoadType(section.sortBy(_.startAddrMValue)).map { continuousSection =>
         val modifiedRoadwayNumbers = continuousSection.map(_.roadwayNumber).distinct
+        modifiedRoadwayNumbers.foreach(modified =>  logger.info(s"modifiedRoadwayNumbers: ${modified}"))
         getObsoleteNodePointsAndJunctionPointsByModifiedRoadwayNumbers(modifiedRoadwayNumbers, terminatedJunctionPoints)
       }
     }.values.flatten.toSeq
@@ -979,10 +1011,13 @@ class NodesAndJunctionsService(roadwayDAO: RoadwayDAO, roadwayPointDAO: RoadwayP
     def roadEndingInSameOwnRoadNumber(junctionPointsToCheck: Seq[JunctionPoint]): Boolean = {
 
       def isRoadEndingInItself(curr: JunctionPoint, rest: Seq[JunctionPoint]): Boolean = {
+        logger.info(s"rest: ${rest}")
+        logger.info(s"curr: roadN ${curr.roadNumber} Disc: ${curr.discontinuity} beforAfter: ${curr.beforeAfter}")
         rest.exists(jp => curr.roadNumber == jp.roadNumber && curr.discontinuity == Discontinuity.EndOfRoad && jp.discontinuity != Discontinuity.EndOfRoad && curr.beforeAfter == Before)
       }
 
       junctionPointsToCheck.exists { jpc =>
+        logger.info(s"jpc: ${jpc.id}")
         isRoadEndingInItself(jpc, junctionPointsToCheck.filter(_.id != jpc.id))
       }
     }

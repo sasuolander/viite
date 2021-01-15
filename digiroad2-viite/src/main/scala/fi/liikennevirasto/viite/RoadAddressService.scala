@@ -798,6 +798,7 @@ class RoadAddressService(roadLinkService: RoadLinkService, roadwayDAO: RoadwayDA
   def handleRoadwayPointsUpdate(roadwayChanges: List[ProjectRoadwayChange], projectLinkChanges: Seq[ProjectRoadLinkChange], username: String = "-"): Unit = {
     def handleDualRoadwayPoint(oldRoadwayPointId: Long, point: ProjectRoadLinkChange): Unit = {
       // get new address for roadway point, new beforeAfter value for node point and junction point and new startOrEnd for calibration point
+      logger.info(s"-----handle dual roadway point---")
       val (newAddr, beforeAfter, startOrEnd) = if (point.reversed) {
         (point.newEndAddr, BeforeAfter.Before, CalibrationPointLocation.EndOfLink)
       } else {
