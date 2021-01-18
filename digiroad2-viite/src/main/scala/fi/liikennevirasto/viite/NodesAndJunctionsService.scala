@@ -425,7 +425,6 @@ class NodesAndJunctionsService(roadwayDAO: RoadwayDAO, roadwayPointDAO: RoadwayP
         val originalLink = mappedRoadwayNumbers.find(mpr => projectLink.startAddrMValue == mpr.newStartAddr && projectLink.endAddrMValue == mpr.newEndAddr && mpr.newRoadwayNumber == projectLink.roadwayNumber)
         logger.info(s"originalLink empty: ${originalLink.isEmpty}")
 
-        logger.info(s"original roadwaynumber: ${originalLink.get.originalRoadwayNumber} new roadwaynumber: ${originalLink.get.newRoadwayNumber}")
 
         val existingHeadJunctionPoint = {
           if (originalLink.nonEmpty) {
