@@ -155,8 +155,6 @@ BEGIN
                             INSERT INTO EXPORT_TABLE VALUES (COUNTER,
                                                              'INSERT INTO LINK (ID,"source",ADJUSTED_TIMESTAMP,CREATED_TIME) VALUES (' ||
                                                              link.ID || ',' || link."SOURCE" || ',' || link.ADJUSTED_TIMESTAMP || ',' || 'TO_TIMESTAMP( ''' || CAST(link.CREATED_TIME AS TIMESTAMP(0))  || ''' '|| ', ' || '''DD-MON-YY HH12.MI.SS PM''' || ')) ON CONFLICT (ID) DO NOTHING;');
-                            --					link.ID || ',' || link."SOURCE" || ',' || link.ADJUSTED_TIMESTAMP || ',' || 'TO_TIMESTAMP(''' || CAST(link.CREATED_TIME AS TIMESTAMP(0))  || ', DD-MON-YY HH12.MI.SS PM' || '''));');
---					link.ID || ',' || link."SOURCE" || ',' || link.ADJUSTED_TIMESTAMP || ',''' || link.CREATED_TIME || ''');');
                             COUNTER := COUNTER + 1;
                         END LOOP;
 
@@ -174,16 +172,7 @@ BEGIN
 
                     --	LINEAR_LOCATION
                     FOR loc IN linear_locations (ROAD, ROAD_PART) LOOP
-                        --				FOR e IN (SELECT TO_CHAR(column_value) value FROM TABLE(
---					SELECT ll.GEOMETRY.SDO_ELEM_INFO FROM LINEAR_LOCATION ll
---						WHERE ll.ID = loc.ID))
---				LOOP
---					elem_info_array := CONCAT(elem_info_array, CONCAT(REPLACE(e.value, ',', '.'), ','));
---				END LOOP;
---		  		elem_info_array := SUBSTR(elem_info_array, 1, LENGTH(elem_info_array) - 1) || ')';
-
                             ordinate_array := '';
-
                             FOR o IN (SELECT TO_CHAR(column_value) value FROM TABLE(
                                 SELECT ll.GEOMETRY.SDO_ORDINATES FROM LINEAR_LOCATION ll
                                 WHERE ll.ID = loc.ID))
@@ -202,18 +191,12 @@ BEGIN
                                                              loc.ID || ',' || loc.ROADWAY_NUMBER || ',' || loc.ORDER_NUMBER || ',' || loc.LINK_ID || ',' ||
                                                              REPLACE(TO_CHAR(loc.START_MEASURE), ',', '.') || ',' || REPLACE(TO_CHAR(loc.END_MEASURE), ',', '.') || ',' || loc.SIDE || ',' ||
 
---					'ST_GeomFromText(''' || 'LINESTRING(' || coordinate_array(1) || ',' || coordinate_array(2) || ', 0.0, 0.0,' || coordinate_array(5) || ',' || coordinate_array(6) || ', 0.0,' ||  coordinate_array(8) || ')' || ''', 3067)'
                                                              'ST_GeomFromText(''' || 'LINESTRING(' || ordinate_array || ''', 3067), ' || ' '''
 
-                                                                 --					'MDSYS.SDO_GEOMETRY(' || loc.GEOMETRY.SDO_GTYPE || ',' || loc.GEOMETRY.SDO_SRID || ',' || 'NULL' || ',' ||
---					elem_info_array || ',' || ordinate_array || '),'''
                                                                  || loc.VALID_FROM || ''',''' || loc.CREATED_BY || ''',' ||   'TO_TIMESTAMP( ''' || CAST(loc.CREATED_TIME AS TIMESTAMP(0))  || ''' '|| ', ' || '''DD-MON-YY HH12.MI.SS PM''' || ')) ON CONFLICT (ID) DO NOTHING;');
 
                             COUNTER := COUNTER + 1;
---				elem_info_array := '';
                             ordinate_array := '';
-                            --				elem_info_array := 'MDSYS.SDO_ELEM_INFO_ARRAY(';
---				ordinate_array := 'MDSYS.SDO_ORDINATE_ARRAY(';
 
                         END LOOP;
 
@@ -261,11 +244,7 @@ BEGIN
                             INSERT INTO EXPORT_TABLE VALUES (COUNTER,
                                                              'INSERT INTO NODE (ID, NODE_NUMBER, COORDINATES, NAME, "type", START_DATE, CREATED_BY, CREATED_TIME, VALID_FROM) VALUES (' ||
                                                              node.ID || ',' || node.NODE_NUMBER || ',' ||
-
-
---					'ST_GeomFromText(''' || 'LINESTRING(' || ordinate_array || ''', 3067), ' || ' '''
                                                              'ST_GeomFromText(''' || 'point(' || ordinate_array || ''', 3067), ' || ' '''
-
                                                                  || node.NAME || ''',' || node."TYPE" || ',''' || node.START_DATE || ''',''' || node.CREATED_BY || ''', TO_TIMESTAMP( ''' || CAST(node.CREATED_TIME AS TIMESTAMP(0))  || ''' '|| ', ' || '''DD-MON-YY HH12.MI.SS PM''' || '), '''
                                                                  || node.VALID_FROM || ''') ON CONFLICT (ID) DO NOTHING;');
                             COUNTER := COUNTER + 1;
@@ -333,11 +312,8 @@ BEGIN
                     COUNTER := COUNTER + 1;
                     COMMIT;
                 END LOOP;
-
             ROAD := road_section.NEXT(ROAD);
         END LOOP;
-
     INSERT INTO EXPORT_TABLE VALUES (COUNTER, '');
---	INSERT INTO EXPORT_TABLE VALUES (COUNTER, 'END;');
     COMMIT;
 END;
